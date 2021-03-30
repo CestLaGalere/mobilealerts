@@ -211,6 +211,7 @@ class MobileAlertsData:
         div_sensors = soup.find_all('div', class_='sensor')
 
         if len(div_sensors) == 0:
+            _LOGGER.warning("No sensors found, check div class name")
             return None
 
         all_attributes = {}
