@@ -43,7 +43,7 @@ ATTRIBUTION = "Data provided by {0}"
 
 DEFAULT_NAME = "MA"
 
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60 * 60) # hourly
+MIN_TIME_BETWEEN_UPDATES = timedelta(hours=1)
 
 DEVICE_CLASS = {
     "temperature": "Temperature",
