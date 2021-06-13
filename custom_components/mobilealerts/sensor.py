@@ -1,6 +1,5 @@
 """Support for the MobileAlerts service."""
 from datetime import datetime, timedelta, time
-import pytz
 import logging
 
 import voluptuous as vol
@@ -30,7 +29,7 @@ CONF_WEATHER = "weather"
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
-from homeassistant.util import Throttle
+from homeassistant.util import Throttle, dt
 
 import requests
 from bs4 import BeautifulSoup
@@ -172,7 +171,6 @@ class MobileAlertsData():
         self._device_class = device_class
         self._duration = duration
         self._method = method
-        self._time_zone = hass.config.time_zone
         self.unit = None
         self.data = None
 
@@ -180,25 +178,21 @@ class MobileAlertsData():
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     def update(self, hass):
         # get readings from MA website
-        try:
-            obs, unit = self.get_reading()
+        obs, unit = self.get_reading()
 
-            if obs is None:
-                _LOGGER.warning("Failed to fetch data from OWM")
-                return
+        if obs is None:
+            _LOGGER.warning("Failed to fetch data from OWM")
+            return
 
-            self.data = obs
-            self.unit = unit
-        except ConnectionError:
-            _LOGGER.warning("Unable to connect to MA URL")
-        except TimeoutError:
-            _LOGGER.warning("Timeout connecting to MA URL")
-        except Exception as e:
-            _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
+        self.data = obs
+        self.unit = unit
 
 
     def get_reading(self):
         data_table = self.get_results_table(self._device_id, self._duration)
+
+        if data_table is None:
+            return None, ""
 
         column_name = DEVICE_CLASS[self._device_class]
         values, unit = self.get_measurements(data_table, column_name, True)
@@ -235,8 +229,7 @@ class MobileAlertsData():
 
         params.update({"deviceid" : device_id })
 
-        now = datetime.now()
-        now += self._time_zone.utcoffset(now)
+        now = dt.now(dt.get_time_zone(hass.config.time_zone))
 
         start_of_period = now - timedelta(seconds = duration * 60 * 60)
 
@@ -250,7 +243,15 @@ class MobileAlertsData():
 
     def get_results_table(self, device_id, duration):
         url = self.get_device_history_url(device_id, duration)
-        response = requests.get(url)
+        try:
+            response = requests.get(url)
+        except ConnectionError:
+            _LOGGER.warning("Unable to connect to MA URL")
+            return None
+        except TimeoutError:
+            _LOGGER.warning("Timeout connecting to MA URL")
+            return None
+
         if response.status_code != requests.codes.ok:
             raise Exception("requests getting data: {0}".format(response.status_code))
 
