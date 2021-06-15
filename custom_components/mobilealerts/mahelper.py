@@ -8,8 +8,13 @@ def extract_start_stop(reading):
     """
     if type(reading) != str:
         reading = str(reading)
+    is_space = False
+
     for non_digit, c in enumerate(reading):
-        if not (c.isdigit() or c == '.' or c == '-') or c == ' ':
+        if not (c.isdigit() or c == '.' or c == '-'):
+            break
+        if c == ' ':
+            is_space = True
             break
 
     if non_digit == len(reading) - 1 or non_digit == 0:
@@ -17,7 +22,7 @@ def extract_start_stop(reading):
 
     reading_from_end = len(reading) - non_digit
     unit_from_end = reading_from_end
-    if c == ' ':
+    if is_space:
         unit_from_end -= 1
 
     return reading_from_end, unit_from_end

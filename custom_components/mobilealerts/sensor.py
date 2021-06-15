@@ -1,5 +1,5 @@
 """Support for the MobileAlerts service."""
-from datetime import datetime, timedelta, time
+from datetime import timedelta
 import logging
 
 import voluptuous as vol
@@ -12,10 +12,7 @@ from homeassistant.const import (
     CONF_DEVICE_CLASS,
     CONF_DEVICE_ID,
     CONF_DEVICES,
-    TEMP_CELSIUS,
-    SPEED_METERS_PER_SECOND,
     CONF_METHOD,
-    PERCENTAGE,
     CONF_MAXIMUM,
     CONF_MINIMUM,
     CONF_MODE,
