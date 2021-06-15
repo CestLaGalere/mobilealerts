@@ -171,6 +171,7 @@ class MobileAlertsData():
         self._device_class = device_class
         self._duration = duration
         self._method = method
+        self._time_zone = hass.config.time_zone
         self.unit = None
         self.data = None
 
@@ -229,7 +230,7 @@ class MobileAlertsData():
 
         params.update({"deviceid" : device_id })
 
-        now = dt.now(dt.get_time_zone(hass.config.time_zone))
+        now = dt.now(dt.get_time_zone(self._time_zone))
 
         start_of_period = now - timedelta(seconds = duration * 60 * 60)
 
