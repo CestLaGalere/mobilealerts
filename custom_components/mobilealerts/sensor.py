@@ -1,6 +1,7 @@
 """Support for the MobileAlerts service."""
 from datetime import timedelta
 import logging
+from typing import Any, Tuple, List, Optional
 
 import voluptuous as vol
 
@@ -29,7 +30,7 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.util import Throttle, dt
 
 import requests
-from bs4 import BeautifulSoup
+import bs4
 
 from . import extract_start_stop, extract_value_units
 
@@ -56,7 +57,7 @@ MODE_TYPES = [
     "current"
 ]
 
-METHOD_TYPES = [
+METHOD_TYPES: List[str] = [
     CONF_MAXIMUM,
     CONF_MINIMUM,
     CONF_MEAN,
@@ -100,70 +101,10 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             )
 
 
-class MobileAlertsWeather(Entity):
-    """Implementation of an MobileAlerts sensor."""
-
-    def __init__(self, name, mad, device_class, weather):
-        """Initialize the sensor."""
-        self._name = name
-        self._mad = mad
-        self._device_class = device_class
-        self._weather = weather
-        self._state = None
-        self._unit_of_measurement = ""
-
-    @classmethod
-    def current(cls, name, device_class, weather):
-        return cls(name, None, device_class, weather)
-
-    @classmethod
-    def historic(cls, name, mad):
-        return cls(name, mad, None, None)
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def unit_of_measurement(self):
-        return self._unit_of_measurement
-
-    @property
-    def device_state_attributes(self):
-        if self._weather is None:
-            source = "MobileAlerts"
-        else:
-            source = self._weather
-        return {ATTR_ATTRIBUTION: ATTRIBUTION.format(source)}
-
-
-    def update(self):
-        """Get the latest data from Mobile Alerts and updates the state."""
-
-        if self._weather is None:
-            #try:
-            self._mad.update(self.hass)
-            #except:
-            #    _LOGGER.error("Exception when getting MA web update data")
-            #    return
-
-            self._state = self._mad.data
-            self._unit_of_measurement = self._mad.unit
-        else:
-            # get current reading from the weather entity
-            weather = self.hass.states.get(self._weather)
-            sensor_value = weather.attributes.get(self._device_class)
-            self._state, self._unit_of_measurement = extract_value_units(sensor_value)
-
-
 class MobileAlertsData():
     """Get the latest data from MobileAlerts."""
 
-    def __init__(self, hass, device_id, device_class, method, duration):
+    def __init__(self, hass, device_id: str, device_class: str, method: str, duration: int):
         self._device_id = device_id
         self._device_class = device_class
         self._duration = duration
@@ -216,7 +157,7 @@ class MobileAlertsData():
         return result, unit
 
 
-    def get_device_history_url(self, device_id, duration):
+    def get_device_history_url(self, device_id: str, duration: int) -> str:
         """
         Create url to get the last 24h of readings for this device
         Parameters
@@ -239,7 +180,7 @@ class MobileAlertsData():
         return base_url + "?" + all_params
 
 
-    def get_results_table(self, device_id, duration):
+    def get_results_table(self, device_id: str, duration: int):
         url = self.get_device_history_url(device_id, duration)
         try:
             response = requests.get(url)
@@ -253,13 +194,13 @@ class MobileAlertsData():
         if response.status_code != requests.codes.ok:
             raise Exception("requests getting data: {0}".format(response.status_code))
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = bs4.BeautifulSoup(response.text, "html.parser")
 
         data_table = soup.find_all('table')[0]
         return data_table
 
 
-    def get_position(self, data_table, column_name):
+    def get_position(self, data_table, column_name: str) -> int:
         """
         Get the column number of the column_name provided
         """
@@ -275,7 +216,7 @@ class MobileAlertsData():
         return col_no
 
 
-    def get_measurements(self, data_table, column_name, is_numeric):
+    def get_measurements(self, data_table, column_name: str, is_numeric: bool) -> Tuple[List[Any], str]:
         """
         Get a list of measurements for the column_name provided
         Parameters
@@ -304,3 +245,63 @@ class MobileAlertsData():
         measurements = list(measurements)
 
         return measurements, unit
+
+
+class MobileAlertsWeather(Entity):
+    """Implementation of an MobileAlerts sensor."""
+
+    def __init__(self, name: str, mad: Optional[MobileAlertsData], device_class: Optional[str], weather: Optional[str]):
+        """Initialize the sensor."""
+        self._name = name
+        self._mad = mad
+        self._device_class = device_class
+        self._weather = weather
+        self._state = None
+        self._unit_of_measurement = ""
+
+    @classmethod
+    def current(cls, name: str, device_class : str, weather: str):
+        return cls(name, None, device_class, weather)
+
+    @classmethod
+    def historic(cls, name: str, mad: MobileAlertsData):
+        return cls(name, mad, None, None)
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def state(self):
+        return self._state
+
+    @property
+    def unit_of_measurement(self):
+        return self._unit_of_measurement
+
+    @property
+    def device_state_attributes(self):
+        if self._weather is None:
+            source = "MobileAlerts"
+        else:
+            source = self._weather
+        return {ATTR_ATTRIBUTION: ATTRIBUTION.format(source)}
+
+
+    def update(self):
+        """Get the latest data from Mobile Alerts and updates the state."""
+
+        if self._weather is None:
+            #try:
+            self._mad.update(self.hass)
+            #except:
+            #    _LOGGER.error("Exception when getting MA web update data")
+            #    return
+
+            self._state = self._mad.data
+            self._unit_of_measurement = self._mad.unit
+        else:
+            # get current reading from the weather entity
+            weather = self.hass.states.get(self._weather)
+            sensor_value = weather.attributes.get(self._device_class)
+            self._state, self._unit_of_measurement = extract_value_units(sensor_value)
