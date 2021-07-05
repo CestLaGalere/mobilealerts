@@ -205,6 +205,8 @@ class MobileAlertsData:
     def get_current_readings(self, phone_id, device_ids):
         url = "https://measurements.mobile-alerts.eu"
         response = requests.post(url, data= {"phoneid": phone_id})
+        if response.status_code != requests.codes.ok:
+            raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
         page_text = response.text
 
         soup = BeautifulSoup(page_text, "html.parser")

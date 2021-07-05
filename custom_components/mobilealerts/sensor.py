@@ -194,7 +194,7 @@ class MobileAlertsData():
             return None
 
         if response.status_code != requests.codes.ok:
-            raise Exception("requests getting data: {0}".format(response.status_code))
+            raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
 
         soup = bs4.BeautifulSoup(response.text, "html.parser")
 
