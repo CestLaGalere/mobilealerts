@@ -93,7 +93,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         )
     else:   # current
         ma_weather = config.get(CONF_WEATHER)
-        if self.hass.states.get(ma_weather) is None:
+        if hass.states.get(ma_weather) is None:
             raise Exception("weather Entity {0} not found".format(ma_weather))
         for device_class in config[CONF_DEVICES]:
             sensor_name = name.lower() + "_" + device_class
@@ -184,8 +184,12 @@ class MobileAlertsData():
 
     def get_results_table(self, device_id: str, duration: int):
         url = self.get_device_history_url(device_id, duration)
+        headers = {
+            'User-Agent': 'Mozilla/5.0'
+        }
+
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=headers)
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
             return None
