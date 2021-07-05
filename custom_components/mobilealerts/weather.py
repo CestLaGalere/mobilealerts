@@ -212,6 +212,7 @@ class MobileAlertsData:
 
         if len(div_sensors) == 0:
             _LOGGER.warning("No sensors found, check div class name")
+            _LOGGER.warning(page_text)
             return None
 
         all_attributes = {}
