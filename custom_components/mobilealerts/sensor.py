@@ -93,6 +93,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         )
     else:   # current
         ma_weather = config.get(CONF_WEATHER)
+        if self.hass.states.get(ma_weather) is None:
+            raise Exception("weather Entity {0} not found".format(ma_weather))
         for device_class in config[CONF_DEVICES]:
             sensor_name = name.lower() + "_" + device_class
             async_add_entities(
@@ -211,7 +213,7 @@ class MobileAlertsData():
         try:
             col_no = columns.index(column_name)
         except:
-            raise "Column {0} not found in sensor data {1}".format(column_name, columns)
+            raise Exception("Column {0} not found in sensor data {1}".format(column_name, columns))
         
         return col_no
 
