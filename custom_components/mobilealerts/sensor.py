@@ -191,7 +191,7 @@ class MobileAlertsData():
         try:
             response = requests.get(url, headers=headers)
         except ConnectionError:
-            _LOGGER.warning("Unable to connect to MA URL")
+            _LOGGER.warning("Unable to connect to MA URL : {}".format(url))
             return None
         except TimeoutError:
             _LOGGER.warning("Timeout connecting to MA URL")
@@ -201,8 +201,12 @@ class MobileAlertsData():
             raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
 
         soup = bs4.BeautifulSoup(response.text, "html.parser")
+        tables = soup.find_all('table')
+        if len(tables) == 0:
+            _LOGGER.warning("No data returned : {}".format(url))
+            return None
 
-        data_table = soup.find_all('table')[0]
+        data_table = tables[0]
         return data_table
 
 
