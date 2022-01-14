@@ -1,7 +1,7 @@
 """Support for the MobileAlerts service."""
 from datetime import timedelta
 import logging
-from typing import Any, Tuple, List, Optional
+from typing import Any, Tuple, List, Mapping, Optional
 
 import voluptuous as vol
 
@@ -268,6 +268,13 @@ class MobileAlertsWeather(Entity):
         self._weather = weather
         self._state = None
         self._unit_of_measurement = ""
+        if self._weather is None:
+            source = "MobileAlerts"
+        else:
+            source = self._weather
+        self._attributes = {
+            ATTR_ATTRIBUTION: ATTRIBUTION.format(source),
+        }
 
     @classmethod
     def current(cls, name: str, device_class : str, weather: str):
@@ -278,7 +285,7 @@ class MobileAlertsWeather(Entity):
         return cls(name, mad, None, None)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
@@ -286,16 +293,12 @@ class MobileAlertsWeather(Entity):
         return self._state
 
     @property
-    def unit_of_measurement(self):
+    def unit_of_measurement(self) -> str:
         return self._unit_of_measurement
 
     @property
-    def device_state_attributes(self):
-        if self._weather is None:
-            source = "MobileAlerts"
-        else:
-            source = self._weather
-        return {ATTR_ATTRIBUTION: ATTRIBUTION.format(source)}
+    def extra_state_attributes(self) -> Optional(Mapping[str, Any]):
+        return self._attributes
 
 
     def update(self):
