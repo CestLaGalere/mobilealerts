@@ -2,6 +2,7 @@
 from datetime import timedelta
 import logging
 import re
+from typing import Any, Tuple, List, Mapping, Optional
 
 import voluptuous as vol
 
@@ -43,9 +44,12 @@ SENSOR_READINGS = [
     "snow",
 ]
 
+from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
-from homeassistant.util import Throttle
-from homeassistant.util.pressure import convert as convert_pressure
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity import Entity
+from homeassistant.util import Throttle, dt
 
 import requests
 from bs4 import BeautifulSoup
@@ -73,7 +77,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+async def async_setup_platform(hass: HomeAssistant, config: ConfigEntry, async_add_entities: AddEntitiesCallback, discovery_info=None) -> None:
     """Set up the OpenWeatherMap weather platform."""
 
     name = config.get(CONF_NAME)
@@ -89,22 +93,24 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         True,
     )
 
+class MobileAlertsData:
+    pass
 
 class MobileAlertsWeather(WeatherEntity):
     """Implementation of an MobileAlerts sensor. """
 
-    def __init__(self, name, mad):
+    def __init__(self, name : str, mad : MobileAlertsData) -> None:
         """Initialize the sensor."""
         self._name = name
         self._mad = mad
         self.data = None
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def condition(self):
+    def condition(self) -> str:
         return self._condition
 
     @property
@@ -112,7 +118,7 @@ class MobileAlertsWeather(WeatherEntity):
         return self.extract_reading("temperature", True)
 
     @property
-    def temperature_unit(self):
+    def temperature_unit(self) -> str:
         return TEMP_CELSIUS
 
     @property
@@ -131,7 +137,7 @@ class MobileAlertsWeather(WeatherEntity):
         return self.extract_reading("windspeed", True)
 
     @property
-    def wind_bearing(self):
+    def wind_bearing(self) -> str:
         return self.extract_reading("wind direction", True)
 
     @property
@@ -139,7 +145,7 @@ class MobileAlertsWeather(WeatherEntity):
         return ATTRIBUTION
 
     @property
-    def state_attributes(self):
+    def extra_state_attributes(self) -> Mapping[str, Any]:
         data = {}
         for sensor_id, sensor_parameters in self.data.items():
             for name, value in sensor_parameters.items():
@@ -149,7 +155,7 @@ class MobileAlertsWeather(WeatherEntity):
         return data
 
 
-    def extract_reading(self, reading_type, remove_units):
+    def extract_reading(self, reading_type : str, remove_units : bool) -> str:
         if self.data is None:
             return ""
 
@@ -163,7 +169,7 @@ class MobileAlertsWeather(WeatherEntity):
         return ""
 
 
-    def update(self):
+    def update(self) -> None:
         """Get the latest data from Mobile Alerts and updates the states."""
         try:
             self._mad.update()
@@ -178,15 +184,14 @@ class MobileAlertsWeather(WeatherEntity):
 class MobileAlertsData:
     """Get the latest data from MobileAlerts."""
 
-    def __init__(self, phone_id, device_ids):
+    def __init__(self, phone_id : str, device_ids : List[str]) -> None:
         self._phone_id = phone_id
         self._device_ids = device_ids
         self.data = None
 
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    def update(self):
-
+    def update(self) -> None:
         try:
             obs = self.get_current_readings(self._phone_id, self._device_ids)
             if obs is None:
@@ -202,7 +207,7 @@ class MobileAlertsData:
             _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
 
 
-    def get_current_readings(self, phone_id, device_ids):
+    def get_current_readings(self, phone_id : str, device_ids : List[str]):
         url = "https://measurements.mobile-alerts.eu"
         headers = {
             'User-Agent': 'Mozilla/5.0'
