@@ -297,7 +297,7 @@ class MobileAlertsWeather(Entity):
         return self._unit_of_measurement
 
     @property
-    def extra_state_attributes(self) -> Optional(Mapping[str, Any]):
+    def extra_state_attributes(self) -> Mapping[str, Any]:
         return self._attributes
 
 
