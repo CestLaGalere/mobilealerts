@@ -25,7 +25,10 @@ CONF_DIFFERENCE = "difference"
 CONF_WEATHER = "weather"
 
 
+from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import Entity
 from homeassistant.util import Throttle, dt
 
@@ -78,7 +81,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+async def async_setup_platform(hass: HomeAssistant, config: ConfigEntry, async_add_entities: AddEntitiesCallback, discovery_info=None):
     name = config.get(CONF_NAME)
     device_class = config.get(CONF_DEVICE_CLASS)
     device_id = config.get(CONF_DEVICE_ID)
@@ -106,7 +109,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 class MobileAlertsData():
     """Get the latest data from MobileAlerts."""
 
-    def __init__(self, hass, device_id: str, device_class: str, method: str, duration: int):
+    def __init__(self, hass: HomeAssistant, device_id: str, device_class: str, method: str, duration: int) -> None:
         self._device_id = device_id
         self._device_class = device_class
         self._duration = duration
@@ -117,7 +120,7 @@ class MobileAlertsData():
 
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    def update(self, hass):
+    def update(self, hass: HomeAssistant) -> None:
         # get readings from MA website
         obs, unit = self.get_reading()
 
@@ -301,7 +304,7 @@ class MobileAlertsWeather(Entity):
         return self._attributes
 
 
-    def update(self):
+    def update(self) -> None:
         """Get the latest data from Mobile Alerts and updates the state."""
 
         if self._weather is None:
