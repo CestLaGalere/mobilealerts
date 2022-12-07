@@ -132,7 +132,7 @@ class MobileAlertsSensor(Entity):
         self._device_id = device_id
         self._name = device_id
         self._mad = mad
-        self.data = None
+        self._data = None
 
     @property
     def name(self) -> str:
@@ -176,7 +176,7 @@ class MobileAlertsSensor(Entity):
     @property
     def extra_state_attributes(self) -> Mapping[str, Any]:
         data = {}
-        for sensor_id, sensor_parameters in self.data.items():
+        for sensor_id, sensor_parameters in self._data.items():
             for name, value in sensor_parameters.items():
                 if name.replace(' ','') in SENSOR_READINGS:
                     data[name] = value
@@ -185,10 +185,10 @@ class MobileAlertsSensor(Entity):
 
 
     def extract_reading(self, reading_type : str, remove_units : bool) -> str:
-        if self.data is None:
+        if self._data is None:
             return ""
 
-        for sensor_id, sensor_parameters in self.data.items():
+        for sensor_id, sensor_parameters in self._data.items():
             for name, value in sensor_parameters.items():
                 if name == reading_type:
                     if remove_units:
