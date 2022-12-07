@@ -187,13 +187,14 @@ class MobileAlertsSensor(Entity):
     def extract_reading(self, reading_type : str, remove_units : bool) -> str:
         if self._data is None:
             return ""
+        # self._data
+        # {'Name': 'Downstairs', 'timestamp': '12/7/2022 7:04:01 PM', 'temperature': '0.0 C', 'humidity': '92%'}
 
-        for sensor_id, sensor_parameters in self._data.items():
-            for name, value in sensor_parameters.items():
-                if name == reading_type:
-                    if remove_units:
-                        value, u = extract_value_units(value)
-                    return value
+        if reading_type in self._data:
+            value = self._data[reading_type]
+            if remove_units:
+                value, u = extract_value_units(value)
+            return value
         
         return ""
 
