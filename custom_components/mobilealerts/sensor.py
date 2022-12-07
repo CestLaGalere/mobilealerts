@@ -4,32 +4,47 @@ import logging
 import re
 from typing import Any, Tuple, List, Mapping, Optional
 
+
+
+from homeassistant import config_entries, core
+from homeassistant.components.sensor import PLATFORM_SCHEMA
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+import homeassistant.helpers.config_validation as cv
+#from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity import Entity
+from homeassistant.util import Throttle
+#, dt
+
+import requests
+from bs4 import BeautifulSoup
+
 import voluptuous as vol
+from . import extract_start_stop, extract_value_units
+
+from .const import (
+    DOMAIN,
+    CONF_DEVICES,
+    CONF_PHONE_ID,
+)
 
 from homeassistant.components.weather import (
-    ATTR_FORECAST_CONDITION,
-    ATTR_FORECAST_PRECIPITATION,
-    ATTR_FORECAST_TEMP,
-    ATTR_FORECAST_TEMP_LOW,
-    ATTR_FORECAST_TIME,
-    ATTR_FORECAST_WIND_BEARING,
-    ATTR_FORECAST_WIND_SPEED,
     PLATFORM_SCHEMA,
     WeatherEntity,
 )
 
 from homeassistant.const import (
-    CONF_API_KEY,
-    CONF_LATITUDE,
-    CONF_LONGITUDE,
-    CONF_MODE,
     CONF_NAME,
     CONF_DEVICE_ID,
-    PRESSURE_HPA,
-    PRESSURE_INHG,
-    STATE_UNKNOWN,
     TEMP_CELSIUS,
     ATTR_ATTRIBUTION
+)
+
+from homeassistant.helpers.typing import (
+    ConfigType,
+    DiscoveryInfoType,
+    HomeAssistantType,
 )
 
 SENSOR_READINGS = [
@@ -44,64 +59,78 @@ SENSOR_READINGS = [
     "snow",
 ]
 
-from homeassistant.core import HomeAssistant
-import homeassistant.helpers.config_validation as cv
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import Entity
-from homeassistant.util import Throttle, dt
 
-import requests
-from bs4 import BeautifulSoup
 
-from . import extract_start_stop, extract_value_units
 
 _LOGGER = logging.getLogger(__name__)
 
+# Time between updating data from GitHub
+SCAN_INTERVAL = timedelta(minutes=10)
+
 ATTRIBUTION = "Data provided by MobileAlerts"
 
-DEFAULT_NAME = "MobileAlerts"
-
-MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=30)
-
-# other consts
-PHONE_ID = "phone_id"
-
+SENSOR_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_DEVICE_ID): cv.string,
+        vol.Optional(CONF_NAME, default=""): cv.string,
+    }
+)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Required(PHONE_ID): cv.string,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-        vol.Optional(CONF_DEVICE_ID, default=[]): vol.All(cv.ensure_list, [cv.string])
+        vol.Required(CONF_PHONE_ID): cv.string,
+        #vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [SENSOR_SCHEMA])
+        vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [cv.string])
     }
 )
 
 
-async def async_setup_platform(hass: HomeAssistant, config: ConfigEntry, async_add_entities: AddEntitiesCallback, discovery_info=None) -> None:
+async def async_setup_entry(
+    hass: core.HomeAssistant,
+    config_entry: config_entries.ConfigEntry,
+    async_add_entities,
+):
+    """Setup sensors from a config entry created in the integrations UI."""
+    config = hass.data[DOMAIN][config_entry.entry_id]
+    # Update our config to include new repos and remove those that have been removed.
+    if config_entry.options:
+        config.update(config_entry.options)
+
+    session = async_get_clientsession(hass)
+
+    phone_id = config.get(CONF_PHONE_ID)
+    mad = MobileAlertsData(phone_id)
+
+    sensors = [MobileAlertsSensor(device_id, mad) for device_id in config[CONF_DEVICES]]
+    async_add_entities(sensors, update_before_add=True)
+
+
+async def async_setup_platform(
+    hass: HomeAssistantType, 
+    config: ConfigType, 
+    async_add_entities: AddEntitiesCallback, 
+    discovery_info: Optional[DiscoveryInfoType] = None,
+    ) -> None:
     """Set up the OpenWeatherMap weather platform."""
+    session = async_get_clientsession(hass)
 
-    name = config.get(CONF_NAME)
-    phone_id = config.get(PHONE_ID)
+    phone_id = config.get(CONF_PHONE_ID)
+    mad = MobileAlertsData(phone_id)
 
-    device_ids = []
-    for device_id in config[CONF_DEVICE_ID]:
-        device_ids.append(device_id)
+    sensors = [MobileAlertsSensor(device_id, mad) for device_id in config[CONF_DEVICES]]
+    async_add_entities(sensors, update_before_add=True)
 
-    mad = MobileAlertsData(phone_id, device_ids)
-    async_add_entities(
-        [MobileAlertsWeather(name, mad)],
-        True,
-    )
 
 class MobileAlertsData:
     pass
 
-class MobileAlertsWeather(WeatherEntity):
+class MobileAlertsSensor(Entity):
     """Implementation of an MobileAlerts sensor. """
 
-    def __init__(self, name : str, mad : MobileAlertsData) -> None:
+    def __init__(self, device_id : str, mad : MobileAlertsData) -> None:
         """Initialize the sensor."""
-        self._name = name
+        self._device_id = device_id
+        self._name = device_id
         self._mad = mad
         self.data = None
 
@@ -170,35 +199,47 @@ class MobileAlertsWeather(WeatherEntity):
 
 
     def update(self) -> None:
-        """Get the latest data from Mobile Alerts and updates the states."""
+        """Get the latest data from Mobile Alerts """
         try:
             self._mad.update()
         except:
             _LOGGER.error("Exception when calling MA web API to update data")
             return
 
-        self.data = self._mad.data
+        self._data = self._mad.get_reading(self._device_id)
+
         self._condition = self.extract_reading("temperature", False) + ", " + self.extract_reading("wind direction", False) + ", " + self.extract_reading("windspeed", False)
 
 
 class MobileAlertsData:
     """Get the latest data from MobileAlerts."""
 
-    def __init__(self, phone_id : str, device_ids : List[str]) -> None:
+    def __init__(self, phone_id) -> None:
         self._phone_id = phone_id
-        self._device_ids = device_ids
-        self.data = None
+        self._data = None
 
 
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
+    def get_reading(self, sensor_id : cv.string):
+        if self._data == None:
+            _LOGGER.error("Sensor ID {0} not found".format(sensor_id))
+            return None
+
+        if sensor_id in self._data:
+            return self._data[sensor_id]
+
+        _LOGGER.error("Sensor ID {0} not found".format(sensor_id))
+        return None
+
+
+    @Throttle(SCAN_INTERVAL)
     def update(self) -> None:
         try:
-            obs = self.get_current_readings(self._phone_id, self._device_ids)
+            obs = self.get_current_readings()
             if obs is None:
                 _LOGGER.warning("Failed to fetch data from OWM")
                 return
 
-            self.data = obs
+            self._data = obs
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
         except TimeoutError:
@@ -207,13 +248,16 @@ class MobileAlertsData:
             _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
 
 
-    def get_current_readings(self, phone_id : str, device_ids : List[str]):
+    def get_current_readings(self):
+        """
+        Build dictionary of all panel readings
+        """
         url = "https://measurements.mobile-alerts.eu"
         headers = {
             'User-Agent': 'Mozilla/5.0'
         }
 
-        response = requests.post(url, data= {"phoneid": phone_id}, headers=headers)
+        response = requests.post(url, data= {"phoneid": self._phone_id}, headers=headers)
         if response.status_code != requests.codes.ok:
             raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
         page_text = response.text
@@ -229,8 +273,7 @@ class MobileAlertsData:
         for div_sensor in div_sensors:
             sensor_id, attributes = self.extract_panel_reading(div_sensor)
             #_LOGGER.warning("update {}:{}".format(sensor_id, attributes))
-            if len(device_ids) == 0 or sensor_id in device_ids:
-                all_attributes[sensor_id] = attributes
+            all_attributes[sensor_id] = attributes
 
         return all_attributes
 
