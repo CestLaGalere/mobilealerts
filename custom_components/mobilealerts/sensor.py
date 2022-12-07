@@ -133,6 +133,7 @@ class MobileAlertsSensor(Entity):
         self._name = device_id
         self._mad = mad
         self._data = None
+        self._condition = ""
 
     @property
     def name(self) -> str:
@@ -140,6 +141,10 @@ class MobileAlertsSensor(Entity):
 
     @property
     def condition(self) -> str:
+        return self._condition
+
+    @property
+    def state(self) -> Optional[str]:
         return self._condition
 
     @property
@@ -208,7 +213,7 @@ class MobileAlertsSensor(Entity):
 
         self._data = self._mad.get_reading(self._device_id)
 
-        self._condition = self.extract_reading("temperature", False)
+        self._condition = self.extract_reading("temperature", True)
         # + ", " + self.extract_reading("wind direction", False) + ", " + self.extract_reading("windspeed", False)
 
 
