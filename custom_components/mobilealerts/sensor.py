@@ -36,6 +36,7 @@ from homeassistant.components.weather import (
 
 from homeassistant.const import (
     CONF_NAME,
+    CONF_TYPE,
     CONF_DEVICE_ID,
     TEMP_CELSIUS,
     ATTR_ATTRIBUTION
@@ -73,6 +74,7 @@ SENSOR_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_DEVICE_ID): cv.string,
         vol.Optional(CONF_NAME, default=""): cv.string,
+        vol.Optional(CONF_TYPE, default=""): cv.string,
     }
 )
 
@@ -131,9 +133,13 @@ class MobileAlertsSensor(Entity):
         """Initialize the sensor."""
         self._device_id = device[CONF_DEVICE_ID]
         self._name = device[CONF_NAME]
+        if CONF_TYPE in device:
+            self._type = device[CONF_TYPE]
+        else:
+            self._type = "temperature"
         self._mad = mad
         self._data = None
-        self._condition = ""
+        self._state = ""
 
     @property
     def name(self) -> str:
@@ -141,11 +147,11 @@ class MobileAlertsSensor(Entity):
 
     @property
     def condition(self) -> str:
-        return self._condition
+        return self._state
 
     @property
     def state(self) -> Optional[str]:
-        return self._condition
+        return self._state
 
     @property
     def temperature(self):
@@ -213,8 +219,7 @@ class MobileAlertsSensor(Entity):
 
         self._data = self._mad.get_reading(self._device_id)
 
-        self._condition = self.extract_reading("temperature", True)
-        # + ", " + self.extract_reading("wind direction", False) + ", " + self.extract_reading("windspeed", False)
+        self._state = self.extract_reading(self._type, True)
 
 
 class MobileAlertsData:
