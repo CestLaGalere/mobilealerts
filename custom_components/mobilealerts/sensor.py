@@ -2,7 +2,7 @@
 from datetime import timedelta
 import logging
 import re
-from typing import Any, Tuple, List, Mapping, Optional
+from typing import Any, Dict, Tuple, List, Mapping, Optional
 
 
 
@@ -79,8 +79,8 @@ SENSOR_SCHEMA = vol.Schema(
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_PHONE_ID): cv.string,
-        #vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [SENSOR_SCHEMA])
-        vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [cv.string])
+        vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [SENSOR_SCHEMA])
+        #vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [cv.string])
     }
 )
 
@@ -101,7 +101,7 @@ async def async_setup_entry(
     phone_id = config.get(CONF_PHONE_ID)
     mad = MobileAlertsData(phone_id)
 
-    sensors = [MobileAlertsSensor(device_id, mad) for device_id in config[CONF_DEVICES]]
+    sensors = [MobileAlertsSensor(device, mad) for device in config[CONF_DEVICES]]
     async_add_entities(sensors, update_before_add=True)
 
 
@@ -117,7 +117,7 @@ async def async_setup_platform(
     phone_id = config.get(CONF_PHONE_ID)
     mad = MobileAlertsData(phone_id)
 
-    sensors = [MobileAlertsSensor(device_id, mad) for device_id in config[CONF_DEVICES]]
+    sensors = [MobileAlertsSensor(device, mad) for device in config[CONF_DEVICES]]
     async_add_entities(sensors, update_before_add=True)
 
 
@@ -127,10 +127,10 @@ class MobileAlertsData:
 class MobileAlertsSensor(Entity):
     """Implementation of an MobileAlerts sensor. """
 
-    def __init__(self, device_id : str, mad : MobileAlertsData) -> None:
+    def __init__(self, device:  Dict[str, str], mad: MobileAlertsData) -> None:
         """Initialize the sensor."""
-        self._device_id = device_id
-        self._name = device_id
+        self._device_id = device[CONF_DEVICE_ID]
+        self._name = CONF_NAME
         self._mad = mad
         self._data = None
         self._condition = ""
