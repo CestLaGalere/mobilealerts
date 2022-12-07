@@ -1,7 +1,5 @@
 {
-    "name": "Mobilealerts",
-    "country": "UK",
-    "domains": ["sensor"],
-    "homeassistant": "0.115.0",
-    "iot_class": ["Cloud Polling"]
+  "name": "mobilealerts",
+  "render_readme": true,
+  "iot_class": "cloud_polling"
 }

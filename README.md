@@ -1,5 +1,3 @@
-# MobileAlerts integation
+# mobilealerts for Home Assistant
 
-integrates home assistant to the mobilealerts sensor reading service
-
-see info.md
+## Installation

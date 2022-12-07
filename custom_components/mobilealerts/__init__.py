@@ -1,3 +1,7 @@
-""" mobilealerts """
+from homeassistant import core
 
-from .mahelper import extract_start_stop, extract_value_units
+
+async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
+    """Set up the mobilealerts component."""
+    # @TODO: Add setup code.
+    return True
