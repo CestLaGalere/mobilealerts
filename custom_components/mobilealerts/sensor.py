@@ -130,7 +130,7 @@ class MobileAlertsSensor(Entity):
     def __init__(self, device:  Dict[str, str], mad: MobileAlertsData) -> None:
         """Initialize the sensor."""
         self._device_id = device[CONF_DEVICE_ID]
-        self._name = CONF_NAME
+        self._name = device[CONF_NAME]
         self._mad = mad
         self._data = None
         self._condition = ""
