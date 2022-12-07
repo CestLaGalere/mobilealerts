@@ -176,10 +176,9 @@ class MobileAlertsSensor(Entity):
     @property
     def extra_state_attributes(self) -> Mapping[str, Any]:
         data = {}
-        for sensor_id, sensor_parameters in self._data.items():
-            for name, value in sensor_parameters.items():
-                if name.replace(' ','') in SENSOR_READINGS:
-                    data[name] = value
+        for name, value in self._data.items():
+            #if name.replace(' ','') in SENSOR_READINGS:
+            data[name] = value
         data[ATTR_ATTRIBUTION] = ATTRIBUTION
         return data
 
