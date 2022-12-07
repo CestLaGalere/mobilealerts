@@ -208,7 +208,8 @@ class MobileAlertsSensor(Entity):
 
         self._data = self._mad.get_reading(self._device_id)
 
-        self._condition = self.extract_reading("temperature", False) + ", " + self.extract_reading("wind direction", False) + ", " + self.extract_reading("windspeed", False)
+        self._condition = self.extract_reading("temperature", False)
+        # + ", " + self.extract_reading("wind direction", False) + ", " + self.extract_reading("windspeed", False)
 
 
 class MobileAlertsData:
