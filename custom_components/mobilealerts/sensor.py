@@ -17,7 +17,7 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.util import Throttle
 #, dt
 
-import requests
+import aiohttp
 from bs4 import BeautifulSoup
 
 import voluptuous as vol
@@ -191,10 +191,10 @@ class MobileAlertsSensor(Entity):
         return "", False
 
 
-    def update(self):
+    async def update(self):
         """Get the latest data from Mobile Alerts """
         try:
-            self._mad.update()
+            await self._mad.update()
         except:
             self._available = False
             _LOGGER.error("Exception when calling MA web API to update data")
@@ -233,9 +233,10 @@ class MobileAlertsData:
 
 
     @Throttle(SCAN_INTERVAL)
-    def update(self) -> None:
+    async def update(self) -> None:
         try:
-            obs = self.get_current_readings()
+            _LOGGER.warning("Updating sensor reading")
+            obs = await self.get_current_readings()
             if obs is None:
                 _LOGGER.warning("Failed to fetch data from OWM")
                 return
@@ -249,7 +250,7 @@ class MobileAlertsData:
             _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
 
 
-    def get_current_readings(self) -> Dict[str, SensorAttributes]:
+    async def get_current_readings(self) -> Dict[str, SensorAttributes]:
         """
         Build dictionary of all panel readings
 
@@ -261,29 +262,30 @@ class MobileAlertsData:
         headers = {
             'User-Agent': 'Mozilla/5.0'
         }
+        async with aiohttp.ClientSession(raise_for_status=True) as session:
 
-        response = requests.post(url, data= {"phoneid": self._phone_id}, headers=headers)
-        if response.status_code != requests.codes.ok:
-            raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
-        page_text = response.text
+            response = session.post(url, data= {"phoneid": self._phone_id}, headers=headers)
+            if response.status_code != session.codes.ok:
+                raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
+            page_text = response.text
 
-        soup = BeautifulSoup(page_text, "html.parser")
-        div_sensors = soup.find_all('div', class_='sensor')
+            soup = BeautifulSoup(page_text, "html.parser")
+            div_sensors = soup.find_all('div', class_='sensor')
 
-        if len(div_sensors) == 0:
-            _LOGGER.warning("No sensors found, check div class name")
-            return None
+            if len(div_sensors) == 0:
+                _LOGGER.warning("No sensors found, check div class name")
+                return None
 
-        all_attributes = {}
-        for div_sensor in div_sensors:
-            sensor_id, attributes = self.extract_panel_reading(div_sensor)
-            if len(sensor_id) > 0:
-                all_attributes[sensor_id] = attributes
-            else:
-                _LOGGER.warning("sensor div contains no id")
-            #_LOGGER.warning("update {}:{}".format(sensor_id, attributes))
+            all_attributes = {}
+            for div_sensor in div_sensors:
+                sensor_id, attributes = self.extract_panel_reading(div_sensor)
+                if len(sensor_id) > 0:
+                    all_attributes[sensor_id] = attributes
+                else:
+                    _LOGGER.warning("sensor div contains no id")
+                #_LOGGER.warning("update {}:{}".format(sensor_id, attributes))
 
-        return all_attributes
+            return all_attributes
 
 
     def extract_panel_reading(self, sensor_div) -> Tuple[str, SensorAttributes]:
