@@ -23,6 +23,8 @@ from bs4 import BeautifulSoup
 import voluptuous as vol
 from .mahelper import extract_value_units
 
+SensorAttributes = Dict[str, Any]
+
 from .const import (
     DOMAIN,
     CONF_DEVICES,
@@ -87,24 +89,19 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 )
 
 
-async def async_setup_entry(
-    hass: core.HomeAssistant,
-    config_entry: config_entries.ConfigEntry,
-    async_add_entities,
-):
-    """Setup sensors from a config entry created in the integrations UI."""
-    config = hass.data[DOMAIN][config_entry.entry_id]
-    # Update our config to include new repos and remove those that have been removed.
-    if config_entry.options:
-        config.update(config_entry.options)
 
-    session = async_get_clientsession(hass)
+#async def async_setup_entry(
+#    hass: core.HomeAssistant,
+#    config_entry: config_entries.ConfigEntry,
+#    async_add_entities,
+#):
+#    """Setup sensors from a config entry created in the integrations UI."""
+#    config = hass.data[DOMAIN][config_entry.entry_id]
+#    # Update our config to include new repos and remove those that have been removed.
+#    if config_entry.options:
+#        config.update(config_entry.options)
 
-    phone_id = config.get(CONF_PHONE_ID)
-    mad = MobileAlertsData(phone_id)
-
-    sensors = [MobileAlertsSensor(device, mad) for device in config[CONF_DEVICES]]
-    async_add_entities(sensors, update_before_add=True)
+#    add_entities(hass, config, async_add_entities)
 
 
 async def async_setup_platform(
@@ -115,8 +112,8 @@ async def async_setup_platform(
     ) -> None:
     """Set up the OpenWeatherMap weather platform."""
     session = async_get_clientsession(hass)
-
     phone_id = config.get(CONF_PHONE_ID)
+
     mad = MobileAlertsData(phone_id)
 
     sensors = [MobileAlertsSensor(device, mad) for device in config[CONF_DEVICES]]
@@ -127,10 +124,11 @@ class MobileAlertsData:
     pass
 
 class MobileAlertsSensor(Entity):
-    """Implementation of an MobileAlerts sensor. """
+    """Implementation of a MobileAlerts sensor. """
 
     def __init__(self, device:  Dict[str, str], mad: MobileAlertsData) -> None:
         """Initialize the sensor."""
+        super().__init__()
         self._device_id = device[CONF_DEVICE_ID]
         self._name = device[CONF_NAME]
         if CONF_TYPE in device:
@@ -140,45 +138,25 @@ class MobileAlertsSensor(Entity):
         self._mad = mad
         self._data = None
         self._state = ""
+        self._id = self._device_id
+        self._available = True
 
     @property
     def name(self) -> str:
         return self._name
 
     @property
-    def condition(self) -> str:
-        return self._state
+    def unique_id(self) -> str:
+        return self._id
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self._available
 
     @property
     def state(self) -> Optional[str]:
         return self._state
-
-    @property
-    def temperature(self):
-        return self.extract_reading("temperature", True)
-
-    @property
-    def temperature_unit(self) -> str:
-        return TEMP_CELSIUS
-
-    @property
-    def pressure(self):
-        return self.extract_reading("pressure", True)
-
-    @property
-    def humidity(self):
-        hum = self.extract_reading("humidity", True)
-        if hum == "":
-            hum = 0
-        return hum
-
-    @property
-    def wind_speed(self):
-        return self.extract_reading("windspeed", True)
-
-    @property
-    def wind_bearing(self) -> str:
-        return self.extract_reading("wind direction", True)
 
     @property
     def attribution(self):
@@ -186,40 +164,42 @@ class MobileAlertsSensor(Entity):
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any]:
-        data = {}
+        attrs = {}
         for name, value in self._data.items():
             #if name.replace(' ','') in SENSOR_READINGS:
-            data[name] = value
-        data[ATTR_ATTRIBUTION] = ATTRIBUTION
-        return data
+            attrs[name] = value
+        attrs[ATTR_ATTRIBUTION] = ATTRIBUTION
+        return attrs
 
 
-    def extract_reading(self, reading_type : str, remove_units : bool) -> str:
+    def extract_reading(self, reading_type : str, remove_units : bool) -> Tuple[str, bool]:
+        """
+        self._data contains a dictionary build from the scraped web page, e.g.
+        {'Name': 'Downstairs', 'timestamp': '12/7/2022 7:04:01 PM', 'temperature': '0.0 C', 'humidity': '92%'}
+        """
         if self._data is None:
-            return ""
-        # self._data
-        # {'Name': 'Downstairs', 'timestamp': '12/7/2022 7:04:01 PM', 'temperature': '0.0 C', 'humidity': '92%'}
+            return "", False
 
         if reading_type in self._data:
             value = self._data[reading_type]
             if remove_units:
                 value, u = extract_value_units(value)
-            return value
+            return value, True
         
-        return ""
+        return "", False
 
 
-    def update(self) -> None:
+    async def async_update(self):
         """Get the latest data from Mobile Alerts """
         try:
             self._mad.update()
         except:
+            self._available = False
             _LOGGER.error("Exception when calling MA web API to update data")
             return
 
         self._data = self._mad.get_reading(self._device_id)
-
-        self._state = self.extract_reading(self._type, True)
+        self._state, self._available = self.extract_reading(self._type, True)
 
 
 class MobileAlertsData:
@@ -230,7 +210,15 @@ class MobileAlertsData:
         self._data = None
 
 
-    def get_reading(self, sensor_id : cv.string):
+    def get_reading(self, sensor_id : cv.string) -> Optional[Dict]:
+        """
+        Retur current data for the sensor
+        passed:
+            sensor_id
+        returns:
+            dictionary of returned data
+            None if the sensor isn't present
+        """
         if self._data == None:
             _LOGGER.error("Sensor ID {0} not found".format(sensor_id))
             return None
@@ -259,9 +247,13 @@ class MobileAlertsData:
             _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
 
 
-    def get_current_readings(self):
+    def get_current_readings(self) -> Dict[str, SensorAttributes]:
         """
         Build dictionary of all panel readings
+
+        Returns
+            dictionary of sensors of the form
+            { sensor_id1 : {"Name" : "sensor_name, "Timestamp" : "sensor_timestamp", "Reading_name" : "value" }, sensor_id2 : { ... } }
         """
         url = "https://measurements.mobile-alerts.eu"
         headers = {
@@ -283,55 +275,25 @@ class MobileAlertsData:
         all_attributes = {}
         for div_sensor in div_sensors:
             sensor_id, attributes = self.extract_panel_reading(div_sensor)
+            if len(sensor_id) > 0:
+                all_attributes[sensor_id] = attributes
+            else:
+                _LOGGER.warning("sensor div contains no id")
             #_LOGGER.warning("update {}:{}".format(sensor_id, attributes))
-            all_attributes[sensor_id] = attributes
 
         return all_attributes
 
 
-    def extract_panel_reading(self, sensor_div):
+    def extract_panel_reading(self, sensor_div) -> Tuple[str, SensorAttributes]:
         """
         Parse the sensor panels and extract the information
         Parameters
             sensor_div - the <div class="sensor"> element - see the html below
 
         Returns
-            dictionary of sensors of the form
-            { sensor_id : {"Name" : "sensor_name, "Timestamp" : "sensor_timestamp", "Reading_name" : "value" }, sensor_id2 : { ... } }
+            Tuple (sensor_id, Dict of attributes)
 
-        html looks as follows:
-        <div class="panel panel-default">
-            <div class="panel-body">
-                <div class="sensor">
-
-                    <div class="sensor-header">
-                        <h3>
-                            <a
-                                href="/Home/MeasurementDetails?deviceid=XXXXXXXXXXXX&amp;vendorid=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&amp;appbundle=eu.mobile_alerts.mobilealerts">Panel Name</a>
-                        </h3>
-                        <div class="sensor-component">
-                            <h5>ID</h5>
-                            <h4>XXXXXXXXXXXX</h4>
-                        </div>
-                    </div>
-
-                    <div class="nofloat"></div>
-
-                    <div class="sensor-component">
-                        <h5>Timestamp</h5>
-                        <h4>6/9/2020 9:14:18 AM</h4>
-                    </div>
-                    <div class="sensor-component">
-                        <h5>Temperature</h5>
-                        <h4>12.9 C</h4>
-                    </div>
-                    <div class="sensor-component">
-                        <h5>Humidity</h5> <!-- Luftfeuchtigkeit -->
-                        <h4>93%</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
+        input html - see tests \ test_source.html
         """
         attributes = {}
         # name is after the <a> in sensor-header
@@ -342,6 +304,8 @@ class MobileAlertsData:
         # put all sensor-component names and values into this dictionary
         sensor_components = sensor_div.find_all('div', class_='sensor-component')
         
+        sensor_id = ""
+
         for sensor in sensor_components:
             h5 = sensor.find('h5').contents[0].lower()
             h4 = sensor.find('h4').contents[0]
@@ -350,11 +314,9 @@ class MobileAlertsData:
                 continue
             attributes[h5] = h4
 
-
         # rain sensor which only contains the name attribute means no rainfall
         if (re.compile(r'\b(rain)\b', flags=re.IGNORECASE).search(sensor_name) is not None
             and len(attributes) == 1):
             attributes["rain"] = "0 mm"
-            
 
         return sensor_id, attributes
