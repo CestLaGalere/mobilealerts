@@ -266,10 +266,10 @@ class MobileAlertsData:
 
         timeout = aiohttp.ClientTimeout(total=60)
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            response = session.post(url, data= {"phoneid": self._phone_id}, headers=headers)
-            if response.status_code != session.codes.ok:
-                raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
-            page_text = response.text
+            async with session.post(url, data= {"phoneid": self._phone_id}, headers=headers) as response:
+                if response.status_code != session.codes.ok:
+                    raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
+                page_text = response.text
 
         soup = BeautifulSoup(page_text, "html.parser")
         div_sensors = soup.find_all('div', class_='sensor')
