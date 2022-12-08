@@ -139,15 +139,17 @@ class MobileAlertsSensor(Entity):
         self._data = None
         self._state = ""
         self._id = self._device_id + self._type[:1]
+        _LOGGER.warning("Sensor unique ID {0} created".format(self._id))
+
         self._available = True
 
     @property
     def name(self) -> str:
         return self._name
 
-    @property
-    def unique_id(self) -> str:
-        return self._id
+#    @property
+#    def unique_id(self) -> str:
+#        return self._id
 
     @property
     def available(self) -> bool:
@@ -192,7 +194,7 @@ class MobileAlertsSensor(Entity):
     async def async_update(self):
         """Get the latest data from Mobile Alerts """
         try:
-            self._mad.update()
+            await self._mad.update()
         except:
             self._available = False
             _LOGGER.error("Exception when calling MA web API to update data")
@@ -247,7 +249,7 @@ class MobileAlertsData:
             _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
 
 
-    async def get_current_readings(self) -> Dict[str, SensorAttributes]:
+    def get_current_readings(self) -> Dict[str, SensorAttributes]:
         """
         Build dictionary of all panel readings
 
