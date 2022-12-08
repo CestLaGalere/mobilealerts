@@ -139,7 +139,7 @@ class MobileAlertsSensor(Entity):
         self._data = None
         self._state = ""
         self._id = self._device_id + self._type[:1]
-        _LOGGER.warning("Sensor unique ID {0} created".format(self._id))
+        #_LOGGER.warning("Sensor unique ID {0} created".format(self._id))
 
         self._available = True
 
@@ -191,10 +191,10 @@ class MobileAlertsSensor(Entity):
         return "", False
 
 
-    async def async_update(self):
+    def update(self):
         """Get the latest data from Mobile Alerts """
         try:
-            await self._mad.update()
+            self._mad.update()
         except:
             self._available = False
             _LOGGER.error("Exception when calling MA web API to update data")
