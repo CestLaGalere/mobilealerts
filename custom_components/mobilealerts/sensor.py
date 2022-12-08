@@ -141,7 +141,7 @@ class MobileAlertsSensor(Entity):
         self._id = self._device_id + self._type[:1]
         #_LOGGER.warning("Sensor unique ID {0} created".format(self._id))
 
-        self._available = True
+        self._available = False
 
     @property
     def name(self) -> str:
@@ -167,10 +167,11 @@ class MobileAlertsSensor(Entity):
     @property
     def extra_state_attributes(self) -> Mapping[str, Any]:
         attrs = {}
-        for name, value in self._data.items():
-            #if name.replace(' ','') in SENSOR_READINGS:
-            attrs[name] = value
-        attrs[ATTR_ATTRIBUTION] = ATTRIBUTION
+        if self._available:
+            for name, value in self._data.items():
+                #if name.replace(' ','') in SENSOR_READINGS:
+                attrs[name] = value
+            attrs[ATTR_ATTRIBUTION] = ATTRIBUTION
         return attrs
 
 
