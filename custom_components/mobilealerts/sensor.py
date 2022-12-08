@@ -138,7 +138,7 @@ class MobileAlertsSensor(Entity):
         self._mad = mad
         self._data = None
         self._state = ""
-        self._id = self._device_id
+        self._id = self._device_id + self._type[:1]
         self._available = True
 
     @property
@@ -247,7 +247,7 @@ class MobileAlertsData:
             _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
 
 
-    def get_current_readings(self) -> Dict[str, SensorAttributes]:
+    async def get_current_readings(self) -> Dict[str, SensorAttributes]:
         """
         Build dictionary of all panel readings
 
