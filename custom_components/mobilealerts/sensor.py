@@ -263,30 +263,31 @@ class MobileAlertsData:
         headers = {
             'User-Agent': 'Mozilla/5.0'
         }
-        async with aiohttp.ClientSession(raise_for_status=True) as session:
 
+        timeout = aiohttp.ClientTimeout(total=60)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             response = session.post(url, data= {"phoneid": self._phone_id}, headers=headers)
             if response.status_code != session.codes.ok:
                 raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
             page_text = response.text
 
-            soup = BeautifulSoup(page_text, "html.parser")
-            div_sensors = soup.find_all('div', class_='sensor')
+        soup = BeautifulSoup(page_text, "html.parser")
+        div_sensors = soup.find_all('div', class_='sensor')
 
-            if len(div_sensors) == 0:
-                _LOGGER.warning("No sensors found, check div class name")
-                return None
+        if len(div_sensors) == 0:
+            _LOGGER.warning("No sensors found, check div class name")
+            return None
 
-            all_attributes = {}
-            for div_sensor in div_sensors:
-                sensor_id, attributes = self.extract_panel_reading(div_sensor)
-                if len(sensor_id) > 0:
-                    all_attributes[sensor_id] = attributes
-                else:
-                    _LOGGER.warning("sensor div contains no id")
-                #_LOGGER.warning("update {}:{}".format(sensor_id, attributes))
+        all_attributes = {}
+        for div_sensor in div_sensors:
+            sensor_id, attributes = self.extract_panel_reading(div_sensor)
+            if len(sensor_id) > 0:
+                all_attributes[sensor_id] = attributes
+            else:
+                _LOGGER.warning("sensor div contains no id")
+            #_LOGGER.warning("update {}:{}".format(sensor_id, attributes))
 
-            return all_attributes
+        return all_attributes
 
 
     def extract_panel_reading(self, sensor_div) -> Tuple[str, SensorAttributes]:
