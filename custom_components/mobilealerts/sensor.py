@@ -26,22 +26,21 @@ from .mahelper import extract_value_units
 SensorAttributes = Dict[str, Any]
 
 from .const import (
-    DOMAIN,
     CONF_DEVICES,
     CONF_PHONE_ID,
+    ATTRIBUTION,
 )
 
 from homeassistant.components.weather import (
     PLATFORM_SCHEMA,
-    WeatherEntity,
 )
 
 from homeassistant.const import (
     CONF_NAME,
     CONF_TYPE,
     CONF_DEVICE_ID,
-    TEMP_CELSIUS,
-    ATTR_ATTRIBUTION
+    ATTR_ATTRIBUTION,
+    SENSOR_READINGS,
 )
 
 from homeassistant.helpers.typing import (
@@ -50,33 +49,16 @@ from homeassistant.helpers.typing import (
     HomeAssistantType,
 )
 
-SENSOR_READINGS = [
-    "temperature",
-    "winddirection",
-    "windbearing",
-    "windspeed",
-    "gust",
-    "humidity",
-    "pressure",
-    "rain",
-    "snow",
-]
-
-
-
-
 _LOGGER = logging.getLogger(__name__)
 
 # Time between updating data from GitHub
 SCAN_INTERVAL = timedelta(minutes=10)
 
-ATTRIBUTION = "Data provided by MobileAlerts"
-
 SENSOR_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_DEVICE_ID): cv.string,
-        vol.Optional(CONF_NAME, default=""): cv.string,
-        vol.Optional(CONF_TYPE, default=""): cv.string,
+        vol.Required(CONF_NAME): cv.string,
+        vol.Required(CONF_TYPE): vol.All(cv.string, vol.In(SENSOR_READINGS)),
     }
 )
 
