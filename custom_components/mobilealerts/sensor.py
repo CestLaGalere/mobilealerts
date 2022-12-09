@@ -223,6 +223,7 @@ class MobileAlertsData:
             None if the sensor isn't present
         """
         if self._data == None:
+            # either still waiting for first call or calls have failed...
             _LOGGER.info("No sensor data")
             return None
 
