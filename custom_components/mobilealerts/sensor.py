@@ -192,7 +192,7 @@ class MobileAlertsSensor(Entity):
         return "", False
 
 
-    async def update(self):
+    async def async_update(self):
         """Get the latest data from Mobile Alerts """
         try:
             await self._mad.update()
@@ -264,12 +264,13 @@ class MobileAlertsData:
             'User-Agent': 'Mozilla/5.0'
         }
 
+        page_text = ""
         timeout = aiohttp.ClientTimeout(total=60)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(url, data= {"phoneid": self._phone_id}, headers=headers) as response:
-                if response.status_code != session.codes.ok:
-                    raise Exception("requests getting data: {0}, {1}".format(response.status_code, url))
-                page_text = response.text
+                if response.status != 200:
+                    raise Exception("requests getting data: {0}, {1}".format(response.status, url))
+                page_text = await response.read()
 
         soup = BeautifulSoup(page_text, "html.parser")
         div_sensors = soup.find_all('div', class_='sensor')
