@@ -223,7 +223,7 @@ class MobileAlertsData:
             None if the sensor isn't present
         """
         if self._data == None:
-            _LOGGER.error("Sensor ID {0} not found".format(sensor_id))
+            _LOGGER.info("No sensor data")
             return None
 
         if sensor_id in self._data:
