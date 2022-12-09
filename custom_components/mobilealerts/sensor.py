@@ -29,7 +29,6 @@ from .const import (
     CONF_DEVICES,
     CONF_PHONE_ID,
     ATTRIBUTION,
-    SENSOR_READINGS,
 )
 
 from homeassistant.components.weather import (
@@ -50,6 +49,18 @@ from homeassistant.helpers.typing import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+SENSOR_READINGS = [
+    "temperature",
+    "winddirection",
+    "windbearing",
+    "windspeed",
+    "gust",
+    "humidity",
+    "pressure",
+    "rain",
+    "snow",
+]
 
 # Time between updating data from GitHub
 SCAN_INTERVAL = timedelta(minutes=10)
