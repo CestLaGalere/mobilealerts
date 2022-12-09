@@ -29,6 +29,7 @@ from .const import (
     CONF_DEVICES,
     CONF_PHONE_ID,
     ATTRIBUTION,
+    SENSOR_READINGS,
 )
 
 from homeassistant.components.weather import (
@@ -40,7 +41,6 @@ from homeassistant.const import (
     CONF_TYPE,
     CONF_DEVICE_ID,
     ATTR_ATTRIBUTION,
-    SENSOR_READINGS,
 )
 
 from homeassistant.helpers.typing import (
