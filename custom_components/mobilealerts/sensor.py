@@ -226,7 +226,7 @@ class MobileAlertsData:
 
 
     def update_sensors(self):
-        for fn in self.callbacks:
+        for fn in self._callbacks:
             fn(True)
         self._callbacks = []
 
