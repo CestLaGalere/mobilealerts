@@ -207,8 +207,8 @@ class MobileAlertsSensor(Entity):
             _LOGGER.warning("sensor {0} updated from base".format(self._name))
         self._data = self._mad.get_reading(self._device_id)
         self._state, self._available = self.extract_reading(self._type, True)
-        if not self._available:
-            self._mad.subscribe(self.read_alerts_data)
+#        if not self._available and not called_from_base:
+#            self._mad.subscribe(self.read_alerts_data)
 
 
 class MobileAlertsData:
@@ -217,18 +217,18 @@ class MobileAlertsData:
     def __init__(self, phone_id) -> None:
         self._phone_id = phone_id
         self._data = None
-        self._callbacks = []
+#        self._callbacks = []
 
 
-    def subscribe(self, callback):
-        if callback not in self._callbacks:
-            self._callbacks.append(callback)
+#    def subscribe(self, callback):
+#        if callback not in self._callbacks:
+#            self._callbacks.append(callback)
 
 
-    def update_sensors(self):
-        for fn in self._callbacks:
-            fn(True)
-        self._callbacks = []
+#    def update_sensors(self):
+#        for fn in self._callbacks:
+#            fn(True)
+#        self._callbacks = []
 
 
     def get_reading(self, sensor_id : cv.string) -> Optional[Dict]:
@@ -262,7 +262,7 @@ class MobileAlertsData:
                 return
 
             self._data = obs
-            self.update_sensors()
+#            self.update_sensors()
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
         except TimeoutError:
