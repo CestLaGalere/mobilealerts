@@ -149,7 +149,7 @@ class MobileAlertsSensor(Entity):
         """Return True if entity is available."""
         if not self._available:
             self.read_alerts_data()
-            _LOGGER.warning("sensor {0} update available:{1}".format(self._name, self._available))
+            _LOGGER.warning("sensor {0} available available:{1}".format(self._name, self._available))
         return self._available
 
     @property
@@ -199,12 +199,16 @@ class MobileAlertsSensor(Entity):
             self._available = False
             _LOGGER.error("Exception when calling MA web API to update data")
             return
-        self.read_alerts_data()
+        self.read_alerts_data(False)
 
 
-    def read_alerts_data(self):
+    def read_alerts_data(self, called_from_base):
+        if called_from_base:
+            _LOGGER.warning("sensor {0} updated from base".format(self._name))
         self._data = self._mad.get_reading(self._device_id)
         self._state, self._available = self.extract_reading(self._type, True)
+        if not self._available:
+            self._mad.subscribe(self.read_alerts_data)
 
 
 class MobileAlertsData:
@@ -213,6 +217,18 @@ class MobileAlertsData:
     def __init__(self, phone_id) -> None:
         self._phone_id = phone_id
         self._data = None
+        self._callbacks = []
+
+
+    def subscribe(self, callback):
+        if callback not in self._callbacks:
+            self._callbacks.append(callback)
+
+
+    def update_sensors(self):
+        for fn in self.callbacks:
+            fn(True)
+        self._callbacks = []
 
 
     def get_reading(self, sensor_id : cv.string) -> Optional[Dict]:
@@ -246,6 +262,7 @@ class MobileAlertsData:
                 return
 
             self._data = obs
+            self.update_sensors()
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
         except TimeoutError:
