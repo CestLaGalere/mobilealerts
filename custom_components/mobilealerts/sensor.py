@@ -147,10 +147,14 @@ class MobileAlertsSensor(Entity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
+        if not self._available:
+            self.read_alerts_data()
         return self._available
 
     @property
     def state(self) -> Optional[str]:
+        if not self._available:
+            self.read_alerts_data()
         return self._state
 
     @property
@@ -193,7 +197,10 @@ class MobileAlertsSensor(Entity):
             self._available = False
             _LOGGER.error("Exception when calling MA web API to update data")
             return
+        self.read_alerts_data()
 
+
+    def read_alerts_data(self):
         self._data = self._mad.get_reading(self._device_id)
         self._state, self._available = self.extract_reading(self._type, True)
 
