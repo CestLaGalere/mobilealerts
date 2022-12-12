@@ -149,12 +149,14 @@ class MobileAlertsSensor(Entity):
         """Return True if entity is available."""
         if not self._available:
             self.read_alerts_data()
+            _LOGGER.warning("sensor {0} update available:{1}".format(self._name, self._available))
         return self._available
 
     @property
     def state(self) -> Optional[str]:
         if not self._available:
             self.read_alerts_data()
+            _LOGGER.warning("sensor {0} state available:{1}".format(self._name, self._available))
         return self._state
 
     @property
@@ -237,7 +239,7 @@ class MobileAlertsData:
     @Throttle(SCAN_INTERVAL)
     async def update(self) -> None:
         try:
-            _LOGGER.warning("Updating sensor reading")
+            _LOGGER.debug("Updating sensor reading")
             obs = await self.get_current_readings()
             if obs is None:
                 _LOGGER.warning("Failed to fetch data from OWM")
