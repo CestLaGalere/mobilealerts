@@ -148,14 +148,14 @@ class MobileAlertsSensor(Entity):
     def available(self) -> bool:
         """Return True if entity is available."""
         if not self._available:
-            self.read_alerts_data()
+            self.read_alerts_data(False)
             _LOGGER.warning("sensor {0} available available:{1}".format(self._name, self._available))
         return self._available
 
     @property
     def state(self) -> Optional[str]:
         if not self._available:
-            self.read_alerts_data()
+            self.read_alerts_data(False)
             _LOGGER.warning("sensor {0} state available:{1}".format(self._name, self._available))
         return self._state
 
