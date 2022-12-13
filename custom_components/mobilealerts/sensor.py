@@ -183,10 +183,11 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         self._data = None
         self._state = ""
         self._id = self._device_id + self._type[:1]
-        _LOGGER.debug("MobileAlertsSensor::init ID {0} created".format(self._id))
         
         self._data = self.coordinator.get_reading(self._device_id)
         self._state, self._available = self.extract_reading(self._type, True)
+
+        _LOGGER.debug("MobileAlertsSensor::init ID {0}:{1}".format(self._id, self._state))
 
 
     @property
