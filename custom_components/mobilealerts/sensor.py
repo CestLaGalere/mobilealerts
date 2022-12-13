@@ -140,7 +140,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
             # Name of the data. For logging purposes.
             name="My sensor",
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(minutes=1),
+            update_interval=SCAN_INTERVAL,
         )
         self.mobile_alerts_data = mobile_alerts_data
 
@@ -320,7 +320,7 @@ class MobileAlertsData:
         }
 
         page_text = ""
-        timeout = aiohttp.ClientTimeout(total=60)
+        timeout = aiohttp.ClientTimeout(total=30)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(url, data= {"phoneid": self._phone_id}, headers=headers) as response:
                 if response.status != 200:
