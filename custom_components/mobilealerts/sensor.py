@@ -202,36 +202,37 @@ class MobileAlertsSensor(Entity):
         self.read_alerts_data(False)
 
 
-    def read_alerts_data(self, called_from_base):
-        if called_from_base:
-            _LOGGER.warning("sensor {0} updated from base".format(self._name))
+    def read_alerts_data(self, called_from_base: bool):
         self._data = self._mad.get_reading(self._device_id)
         self._state, self._available = self.extract_reading(self._type, True)
-#        if not self._available and not called_from_base:
-#            self._mad.subscribe(self.read_alerts_data)
+        if called_from_base:
+            _LOGGER.warning("sensor {0} updated from base a:{1} state:{2}".format(self._name, self._available, self._state))
+        if not self._available and not called_from_base:
+            _LOGGER.warning("Callback added for {0}".format(self._name))
+            self._mad.subscribe(self.read_alerts_data)
 
 
 class MobileAlertsData:
     """Get the latest data from MobileAlerts."""
 
-    def __init__(self, phone_id) -> None:
+    def __init__(self, phone_id: str) -> None:
         self._phone_id = phone_id
         self._data = None
-#        self._callbacks = []
+        self._callbacks = []
 
 
-#    def subscribe(self, callback):
-#        if callback not in self._callbacks:
-#            self._callbacks.append(callback)
+    def subscribe(self, callback):
+        if callback not in self._callbacks:
+            self._callbacks.append(callback)
 
 
-#    def update_sensors(self):
-#        for fn in self._callbacks:
-#            fn(True)
-#        self._callbacks = []
+    def update_sensors(self):
+        for fn in self._callbacks:
+            fn(True)
+        self._callbacks = []
 
 
-    def get_reading(self, sensor_id : cv.string) -> Optional[Dict]:
+    def get_reading(self, sensor_id : str) -> Optional[Dict]:
         """
         Retur current data for the sensor
         passed:
@@ -262,7 +263,7 @@ class MobileAlertsData:
                 return
 
             self._data = obs
-#            self.update_sensors()
+            self.update_sensors()
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
         except TimeoutError:
