@@ -4,19 +4,23 @@ import logging
 import re
 from typing import Any, Dict, Tuple, List, Mapping, Optional
 
-
-
-from homeassistant import config_entries, core
 from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.core import callback
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 import homeassistant.helpers.config_validation as cv
-#from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import Entity
-from homeassistant.util import Throttle
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
+#from homeassistant.util import Throttle
 #, dt
 
+import async_timeout
 import aiohttp
 from bs4 import BeautifulSoup
 
@@ -96,6 +100,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 #    add_entities(hass, config, async_add_entities)
 
+class ApiError(Exception):
+    ...
+    pass
+
 
 async def async_setup_platform(
     hass: HomeAssistantType, 
@@ -108,27 +116,69 @@ async def async_setup_platform(
     phone_id = config.get(CONF_PHONE_ID)
 
     mad = MobileAlertsData(phone_id)
+    coordinator = MobileAlertsCoordinator(hass, mad)
 
-    sensors = [MobileAlertsSensor(device, mad) for device in config[CONF_DEVICES]]
-    async_add_entities(sensors, update_before_add=True)
+    # Fetch initial data so we have data when entities subscribe
+    #
+    # If the refresh fails, async_config_entry_first_refresh will
+    # raise ConfigEntryNotReady and setup will try again later
+    #
+    # If you do not want to retry setup on failure, use
+    # coordinator.async_refresh() instead
+    #
+    await coordinator.async_config_entry_first_refresh()
+
+    async_add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
+
+
+class MobileAlertsCoordinator(DataUpdateCoordinator):
+    def __init__(self, hass, mobile_alerts_data):
+        """Initialize my coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            # Name of the data. For logging purposes.
+            name="My sensor",
+            # Polling interval. Will only be polled if there are subscribers.
+            update_interval=timedelta(minutes=1),
+        )
+        self.mobile_alerts_data = mobile_alerts_data
+
+
+    async def _async_update_data(self):
+        """Fetch data from API endpoint.
+
+        This is the place to pre-process the data to lookup tables
+        so entities can quickly look up their data.
+        """
+        try:
+            # Note: asyncio.TimeoutError and aiohttp.ClientError are already
+            # handled by the data update coordinator.
+            async with async_timeout.timeout(30):
+                return await self.mobile_alerts_data.fetch_data()
+        except ApiError as err:
+            raise UpdateFailed(f"Error communicating with API: {err}")
+
+    def get_reading(self, sensor_id : str) -> Optional[Dict]:
+        return self.mobile_alerts_data.get_reading(sensor_id)
 
 
 class MobileAlertsData:
     pass
 
-class MobileAlertsSensor(Entity):
+
+class MobileAlertsSensor(CoordinatorEntity, Entity):
     """Implementation of a MobileAlerts sensor. """
 
-    def __init__(self, device:  Dict[str, str], mad: MobileAlertsData) -> None:
+    def __init__(self, coordinator, device: Dict[str, str]) -> None:
         """Initialize the sensor."""
-        super().__init__()
+        super().__init__(coordinator)
         self._device_id = device[CONF_DEVICE_ID]
         self._name = device[CONF_NAME]
         if CONF_TYPE in device:
             self._type = device[CONF_TYPE]
         else:
             self._type = "temperature"
-        self._mad = mad
         self._data = None
         self._state = ""
         self._id = self._device_id + self._type[:1]
@@ -149,14 +199,14 @@ class MobileAlertsSensor(Entity):
         """Return True if entity is available."""
         if not self._available:
             self.read_alerts_data(False)
-            _LOGGER.warning("sensor {0} available available:{1}".format(self._name, self._available))
+            _LOGGER.debug("available on sensor {0} available:{1}".format(self._name, self._available))
         return self._available
 
     @property
     def state(self) -> Optional[str]:
         if not self._available:
             self.read_alerts_data(False)
-            _LOGGER.warning("sensor {0} state available:{1}".format(self._name, self._available))
+            _LOGGER.debug("state on sensor {0} available:{1}".format(self._name, self._available))
         return self._state
 
     @property
@@ -173,6 +223,13 @@ class MobileAlertsSensor(Entity):
             attrs[ATTR_ATTRIBUTION] = ATTRIBUTION
         return attrs
 
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._data = self.coordinator.get_reading(self._device_id)
+        self._state, self._available = self.extract_reading(self._type, True)
+
+        self.async_write_ha_state()
 
     def extract_reading(self, reading_type : str, remove_units : bool) -> Tuple[str, bool]:
         """
@@ -202,15 +259,6 @@ class MobileAlertsSensor(Entity):
         self.read_alerts_data(False)
 
 
-    def read_alerts_data(self, called_from_base: bool):
-        self._data = self._mad.get_reading(self._device_id)
-        self._state, self._available = self.extract_reading(self._type, True)
-        if called_from_base:
-            _LOGGER.warning("sensor {0} updated from base a:{1} state:{2}".format(self._name, self._available, self._state))
-        if not self._available and not called_from_base:
-            _LOGGER.warning("Callback added for {0}".format(self._name))
-            self._mad.subscribe(self.read_alerts_data)
-
 
 class MobileAlertsData:
     """Get the latest data from MobileAlerts."""
@@ -218,19 +266,6 @@ class MobileAlertsData:
     def __init__(self, phone_id: str) -> None:
         self._phone_id = phone_id
         self._data = None
-        self._callbacks = []
-
-
-    def subscribe(self, callback):
-        if callback not in self._callbacks:
-            self._callbacks.append(callback)
-
-
-    def update_sensors(self):
-        for fn in self._callbacks:
-            fn(True)
-        self._callbacks = []
-
 
     def get_reading(self, sensor_id : str) -> Optional[Dict]:
         """
@@ -253,8 +288,7 @@ class MobileAlertsData:
         return None
 
 
-    @Throttle(SCAN_INTERVAL)
-    async def update(self) -> None:
+    async def fetch_data(self) -> None:
         try:
             _LOGGER.debug("Updating sensor reading")
             obs = await self.get_current_readings()
@@ -266,10 +300,13 @@ class MobileAlertsData:
             self.update_sensors()
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
+            raise ApiError()
         except TimeoutError:
             _LOGGER.warning("Timeout connecting to MA URL")
+            raise ApiError()
         except Exception as e:
             _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
+            raise ApiError()
 
 
     async def get_current_readings(self) -> Dict[str, SensorAttributes]:
