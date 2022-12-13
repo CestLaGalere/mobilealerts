@@ -87,18 +87,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 
 
-#async def async_setup_entry(
-#    hass: core.HomeAssistant,
-#    config_entry: config_entries.ConfigEntry,
-#    async_add_entities,
-#):
-#    """Setup sensors from a config entry created in the integrations UI."""
-#    config = hass.data[DOMAIN][config_entry.entry_id]
-#    # Update our config to include new repos and remove those that have been removed.
-#    if config_entry.options:
-#        config.update(config_entry.options)
-
-#    add_entities(hass, config, async_add_entities)
 
 class ApiError(Exception):
     ...
@@ -131,6 +119,7 @@ async def async_setup_platform(
     async_add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
 
 
+# see https://developers.home-assistant.io/docs/integration_fetching_data/
 class MobileAlertsCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, mobile_alerts_data):
         """Initialize my coordinator."""
@@ -194,19 +183,19 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
     def name(self) -> str:
         return self._name
 
-#    @property
-#    def unique_id(self) -> str:
-#        return self._id
+    @property
+    def unique_id(self) -> str:
+        return self._id
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        _LOGGER.debug("MobileAlertsSensor::available {0} available:{1}".format(self._name, self._available))
+        #_LOGGER.debug("MobileAlertsSensor::available {0} available:{1}".format(self._name, self._available))
         return self._available
 
     @property
     def state(self) -> Optional[str]:
-        _LOGGER.debug("MobileAlertsSensor::state {0} available:{1}".format(self._name, self._available))
+        #_LOGGER.debug("MobileAlertsSensor::state {0} available:{1}".format(self._name, self._available))
         return self._state
 
     @property
@@ -228,7 +217,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         """Handle updated data from the coordinator."""
         self._data = self.coordinator.get_reading(self._device_id)
         self._state, self._available = self.extract_reading(self._type, True)
-        _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} available:{1}".format(self._name, self._available))
+        _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._name, self._state, self._available))
         self.async_write_ha_state()
 
 
