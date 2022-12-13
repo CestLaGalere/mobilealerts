@@ -231,6 +231,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
 
         self.async_write_ha_state()
 
+
     def extract_reading(self, reading_type : str, remove_units : bool) -> Tuple[str, bool]:
         """
         self._data contains a dictionary build from the scraped web page, e.g.
