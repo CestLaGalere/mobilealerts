@@ -154,6 +154,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
         try:
             # Note: asyncio.TimeoutError and aiohttp.ClientError are already
             # handled by the data update coordinator.
+            _LOGGER.warning("_async_update_data called")
             async with async_timeout.timeout(30):
                 return await self.mobile_alerts_data.fetch_data()
         except ApiError as err:
@@ -182,7 +183,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         self._data = None
         self._state = ""
         self._id = self._device_id + self._type[:1]
-        #_LOGGER.warning("Sensor unique ID {0} created".format(self._id))
+        _LOGGER.debug("MobileAlertsSensor::init ID {0} created".format(self._id))
 
         self._available = False
 
@@ -197,16 +198,12 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        if not self._available:
-            self.read_alerts_data(False)
-            _LOGGER.debug("available on sensor {0} available:{1}".format(self._name, self._available))
+        _LOGGER.debug("MobileAlertsSensor::available {0} available:{1}".format(self._name, self._available))
         return self._available
 
     @property
     def state(self) -> Optional[str]:
-        if not self._available:
-            self.read_alerts_data(False)
-            _LOGGER.debug("state on sensor {0} available:{1}".format(self._name, self._available))
+        _LOGGER.debug("MobileAlertsSensor::state {0} available:{1}".format(self._name, self._available))
         return self._state
 
     @property
@@ -228,7 +225,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         """Handle updated data from the coordinator."""
         self._data = self.coordinator.get_reading(self._device_id)
         self._state, self._available = self.extract_reading(self._type, True)
-
+        _LOGGER.debug("state on sensor {0} available:{1}".format(self._name, self._available))
         self.async_write_ha_state()
 
 
@@ -291,7 +288,7 @@ class MobileAlertsData:
 
     async def fetch_data(self) -> None:
         try:
-            _LOGGER.debug("Updating sensor reading")
+            _LOGGER.debug("MobileAlertsData::fetch_data")
             obs = await self.get_current_readings()
             if obs is None:
                 _LOGGER.warning("Failed to fetch data from OWM")
