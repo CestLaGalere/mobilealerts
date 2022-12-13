@@ -154,7 +154,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
         try:
             # Note: asyncio.TimeoutError and aiohttp.ClientError are already
             # handled by the data update coordinator.
-            _LOGGER.warning("_async_update_data called")
+            _LOGGER.debug("MobileAlertsCoordinator::_async_update_data")
             async with async_timeout.timeout(30):
                 return await self.mobile_alerts_data.fetch_data()
         except ApiError as err:
@@ -225,7 +225,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         """Handle updated data from the coordinator."""
         self._data = self.coordinator.get_reading(self._device_id)
         self._state, self._available = self.extract_reading(self._type, True)
-        _LOGGER.debug("state on sensor {0} available:{1}".format(self._name, self._available))
+        _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} available:{1}".format(self._name, self._available))
         self.async_write_ha_state()
 
 
