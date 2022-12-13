@@ -249,15 +249,15 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         return "", False
 
 
-    async def async_update(self):
-        """Get the latest data from Mobile Alerts """
-        try:
-            await self._mad.update()
-        except:
-            self._available = False
-            _LOGGER.error("Exception when calling MA web API to update data")
-            return
-        self.read_alerts_data(False)
+#    async def async_update(self):
+#        """Get the latest data from Mobile Alerts """
+#        try:
+#            await self._mad.update()
+#        except:
+#            self._available = False
+#            _LOGGER.error("Exception when calling MA web API to update data")
+#            return
+#        self.read_alerts_data(False)
 
 
 
