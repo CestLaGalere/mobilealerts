@@ -297,7 +297,6 @@ class MobileAlertsData:
                 return
 
             self._data = obs
-            self.update_sensors()
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
             raise ApiError()
