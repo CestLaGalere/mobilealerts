@@ -148,6 +148,10 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
                 return await self.mobile_alerts_data.fetch_data()
         except ApiError as err:
             raise UpdateFailed(f"Error communicating with API: {err}")
+        except:
+            _LOGGER.warning('Exception within MobileAlertsCoordinator::_async_update_data')
+            raise
+
 
     def get_reading(self, sensor_id : str) -> Optional[Dict]:
         return self.mobile_alerts_data.get_reading(sensor_id)
@@ -238,18 +242,6 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         return "", False
 
 
-#    async def async_update(self):
-#        """Get the latest data from Mobile Alerts """
-#        try:
-#            await self._mad.update()
-#        except:
-#            self._available = False
-#            _LOGGER.error("Exception when calling MA web API to update data")
-#            return
-#        self.read_alerts_data(False)
-
-
-
 class MobileAlertsData:
     """Get the latest data from MobileAlerts."""
 
@@ -259,7 +251,7 @@ class MobileAlertsData:
 
     def get_reading(self, sensor_id : str) -> Optional[Dict]:
         """
-        Retur current data for the sensor
+        Return current data for the sensor
         passed:
             sensor_id
         returns:
