@@ -302,7 +302,7 @@ class MobileAlertsData:
 
         for sensor_data in self._data:
             if sensor_id == sensor_data['deviceid']:
-                return self._data[sensor_id]
+                return sensor_data
 
         _LOGGER.error("Sensor ID {0} not found".format(sensor_id))
         return None
