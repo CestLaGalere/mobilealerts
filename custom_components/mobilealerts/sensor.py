@@ -93,10 +93,10 @@ class ApiError(Exception):
     pass
 
 
-async def async_setup_platform(
+def setup_platform(
     hass: HomeAssistantType, 
     config: ConfigType, 
-    async_add_entities: AddEntitiesCallback, 
+    add_entities: AddEntitiesCallback, 
     discovery_info: Optional[DiscoveryInfoType] = None,
     ) -> None:
     """Set up the OpenWeatherMap weather platform."""
@@ -117,9 +117,7 @@ async def async_setup_platform(
     # If you do not want to retry setup on failure, use
     # coordinator.async_refresh() instead
     #
-    async_add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
-
-    await coordinator.async_config_entry_first_refresh()
+    add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
 
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
@@ -310,6 +308,9 @@ class MobileAlertsData:
     async def fetch_data(self) -> None:
         try:
             _LOGGER.debug("MobileAlertsData::fetch_data")
+            if (self._device_ids) == 0:
+                _LOGGER.debug("no device ids registered")
+                return
 
             url = 'https://www.data199.com/api/pv1/device/lastmeasurement'
             headers = {
