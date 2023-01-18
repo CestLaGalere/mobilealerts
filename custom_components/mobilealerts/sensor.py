@@ -191,7 +191,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         self._id = self._device_id + self._type[:1]
         
         self._handle_coordinator_update()
-        
+
         _LOGGER.debug("MobileAlertsSensor::init ID {0}".format(self._id))
 
 
@@ -300,8 +300,9 @@ class MobileAlertsData:
             _LOGGER.info("No sensor data")
             return None
 
-        if sensor_id in self._data:
-            return self._data[sensor_id]
+        for sensor_data in self._data:
+            if sensor_id == sensor_data['deviceid']:
+                return self._data[sensor_id]
 
         _LOGGER.error("Sensor ID {0} not found".format(sensor_id))
         return None
@@ -342,7 +343,11 @@ class MobileAlertsData:
                 _LOGGER.warning("Failed to fetch data from OWM")
                 return
 
-            self._data = sensor_response
+            if 'devices' not in sensor_response:
+                _LOGGER.warning("MA data contains no devices {0}".format(sensor_response))
+                return
+
+            self._data = sensor_response['devices']
 
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
