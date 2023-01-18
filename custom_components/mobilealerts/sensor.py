@@ -163,7 +163,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
 
 
 class MobileAlertsData:
-    pass.add
+    pass
 
 
 class MobileAlertsSensor(CoordinatorEntity, Entity):
