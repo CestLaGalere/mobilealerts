@@ -280,7 +280,7 @@ class MobileAlertsData:
         _LOGGER.debug("MibileAlertsData::register_device {0}".format(device_id))
         if device_id in self._device_ids:
             return
-        self._device_ids.add(device_id)
+        self._device_ids.append(device_id)
         _LOGGER.debug("device {0} added - ({1})".format(device_id, self._device_ids))
 
 
