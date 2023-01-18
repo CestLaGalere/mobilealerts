@@ -1,0 +1,30 @@
+{
+    "devices": [
+        {
+            "deviceid": "012345678901", 
+            "lastseen": 1674036751, 
+            "lowbattery": false, 
+            "measurement": 
+                {"idx": 103178, 
+                "ts": 1674036730, 
+                "c": 1674036751, 
+                "lb": false, 
+                "t1": 0.0, 
+                "h": 97.0}
+        },
+        {
+            "deviceid": "012345678902",
+            "lastseen": 1674036717,
+            "lowbattery": false,
+            "measurement":
+                {"idx": 95406,
+                "ts": 1674036526,
+                "c": 1674036717,
+                "lb": false,
+                "t1": 18.5,
+                "h": 41.0
+                }
+        }
+    ],
+    "success": true
+}

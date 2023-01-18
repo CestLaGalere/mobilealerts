@@ -3,6 +3,7 @@ from datetime import timedelta
 import logging
 import re
 from typing import Any, Dict, Tuple, List, Mapping, Optional
+import json
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.core import callback
@@ -22,7 +23,6 @@ from homeassistant.helpers.update_coordinator import (
 
 import async_timeout
 import aiohttp
-from bs4 import BeautifulSoup
 
 import voluptuous as vol
 from .mahelper import extract_value_units
@@ -79,7 +79,7 @@ SENSOR_SCHEMA = vol.Schema(
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Required(CONF_PHONE_ID): cv.string,
+        vol.Optional(CONF_PHONE_ID): cv.string,
         vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [SENSOR_SCHEMA])
         #vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [cv.string])
     }
@@ -101,7 +101,10 @@ async def async_setup_platform(
     ) -> None:
     """Set up the OpenWeatherMap weather platform."""
     session = async_get_clientsession(hass)
-    phone_id = config.get(CONF_PHONE_ID)
+
+    phone_id = ""
+    if CONF_PHONE_ID in config:
+        phone_id = config.get(CONF_PHONE_ID)
 
     mad = MobileAlertsData(phone_id)
     coordinator = MobileAlertsCoordinator(hass, mad)
@@ -131,7 +134,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=SCAN_INTERVAL,
         )
-        self.mobile_alerts_data = mobile_alerts_data
+        self._mobile_alerts_data = mobile_alerts_data
 
 
     async def _async_update_data(self):
@@ -145,7 +148,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
             # handled by the data update coordinator.
             _LOGGER.debug("MobileAlertsCoordinator::_async_update_data")
             async with async_timeout.timeout(30):
-                return await self.mobile_alerts_data.fetch_data()
+                return await self._mobile_alerts_data.fetch_data()
         except ApiError as err:
             raise UpdateFailed(f"Error communicating with API: {err}")
         except:
@@ -154,7 +157,10 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
 
 
     def get_reading(self, sensor_id : str) -> Optional[Dict]:
-        return self.mobile_alerts_data.get_reading(sensor_id)
+        return self._mobile_alerts_data.get_reading(sensor_id)
+
+    def get_reader(self):
+        return self._mobile_alerts_data
 
 
 class MobileAlertsData:
@@ -168,11 +174,21 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._device_id = device[CONF_DEVICE_ID]
+        coordinator.get_reader().register_device(self._device_id)
+
         self._name = device[CONF_NAME]
         if CONF_TYPE in device:
             self._type = device[CONF_TYPE]
         else:
             self._type = "temperature"
+
+        if self._type == "temperature":
+            self._measurement_type = "t"
+        elif  self._type == "humidity":
+            self._measurement_type = "h"
+        else:
+            self._measurement_type = ""
+
         self._data = None
         self._state = ""
         self._id = self._device_id + self._type[:1]
@@ -208,46 +224,65 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any]:
-        attrs = {}
-        if self._available:
-            for name, value in self._data.items():
-                #if name.replace(' ','') in SENSOR_READINGS:
-                attrs[name] = value
-            attrs[ATTR_ATTRIBUTION] = ATTRIBUTION
-        return attrs
+#        attrs = {}
+#        if self._available:
+#            for name, value in self._data:
+#                #if name.replace(' ','') in SENSOR_READINGS:
+#                if name == "measurement":
+#
+#                attrs[name] = value
+#            attrs[ATTR_ATTRIBUTION] = ATTRIBUTION
+        return self._data
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         self._data = self.coordinator.get_reading(self._device_id)
-        self._state, self._available = self.extract_reading(self._type, True)
+
+        #self._state, self._available = self.extract_reading(self._type, True)
+        self._available = False
+        if self._data is None:
+            return
+        if "measurement" not in self._data:
+            return
+
+        measurement_data = self._data["measurement"]
+
+        if len(self._measurement_type) == 0:
+            # run through measurements to get first non date one and use this
+            for measurement, value in measurement_data.items():
+                if measurement in ["idx", "ts", "c"]:
+                    continue
+                self._state = value
+                self._available = True
+                break
+        elif self._measurement_type in measurement_data:
+            self._state = self._data[self.measurement_type]
+            self._available = True
+
         _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._name, self._state, self._available))
         self.async_write_ha_state()
 
 
-    def extract_reading(self, reading_type : str, remove_units : bool) -> Tuple[str, bool]:
-        """
-        self._data contains a dictionary build from the scraped web page, e.g.
-        {'Name': 'Downstairs', 'timestamp': '12/7/2022 7:04:01 PM', 'temperature': '0.0 C', 'humidity': '92%'}
-        """
-        if self._data is None:
-            return "", False
-
-        if reading_type in self._data:
-            value = self._data[reading_type]
-            if remove_units:
-                value, u = extract_value_units(value)
-            return value, True
-        
-        return "", False
-
 
 class MobileAlertsData:
-    """Get the latest data from MobileAlerts."""
+    """
+    Get the latest data from MobileAlerts.
+    see REST API doc 
+    https://mobile-alerts.eu/de/home/
+    https://mobile-alerts.eu/info/public_server_api_documentation.pdf
+    """
 
     def __init__(self, phone_id: str) -> None:
         self._phone_id = phone_id
         self._data = None
+        self._device_ids = []
+
+    def register_device(self, device_id: str) -> None:
+        if device_id in self._device_ids:
+            return
+        self._device_ids.add(device_id)
+
 
     def get_reading(self, sensor_id : str) -> Optional[Dict]:
         """
@@ -273,12 +308,36 @@ class MobileAlertsData:
     async def fetch_data(self) -> None:
         try:
             _LOGGER.debug("MobileAlertsData::fetch_data")
-            obs = await self.get_current_readings()
-            if obs is None:
+
+            url = 'https://www.data199.com/api/pv1/device/lastmeasurement'
+            headers = {
+                'Content-Type': 'application/json'
+                }
+            request_data = { "deviceids": ",".join(self._device_ids) }
+            # todo add phoneid if it's there
+    #        if len(self._phone_id) > 0:
+    #            data["phoneid"] = self._phone_id
+
+            page_text = ""
+            timeout = aiohttp.ClientTimeout(total=30)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(url, data=request_data, headers=headers) as response:
+                    page_text = await response.read()
+                    if response.status != 200:
+                        raise Exception("requests getting data: {0}, {1}".format(response.status, url))
+
+            sensor_response = json.loads(page_text)
+            # check data returned has no errors
+            if sensor_response["success"] == False:
+                _LOGGER.warning("Error getting data from MA {0}:{1}".format(sensor_response["errorcode"], sensor_response["errormessage"]))
+                self._data = None
+                return
+            if sensor_response is None:
                 _LOGGER.warning("Failed to fetch data from OWM")
                 return
 
-            self._data = obs
+            self._data = sensor_response
+
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
             raise ApiError()
@@ -288,81 +347,3 @@ class MobileAlertsData:
         except Exception as e:
             _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
             raise ApiError()
-
-
-    async def get_current_readings(self) -> Dict[str, SensorAttributes]:
-        """
-        Build dictionary of all panel readings
-
-        Returns
-            dictionary of sensors of the form
-            { sensor_id1 : {"Name" : "sensor_name, "Timestamp" : "sensor_timestamp", "Reading_name" : "value" }, sensor_id2 : { ... } }
-        """
-        url = "https://measurements.mobile-alerts.eu"
-        headers = {
-            'User-Agent': 'Mozilla/5.0'
-        }
-
-        page_text = ""
-        timeout = aiohttp.ClientTimeout(total=30)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.post(url, data= {"phoneid": self._phone_id}, headers=headers) as response:
-                if response.status != 200:
-                    raise Exception("requests getting data: {0}, {1}".format(response.status, url))
-                page_text = await response.read()
-
-        soup = BeautifulSoup(page_text, "html.parser")
-        div_sensors = soup.find_all('div', class_='sensor')
-
-        if len(div_sensors) == 0:
-            _LOGGER.warning("No sensors found, check div class name")
-            return None
-
-        all_attributes = {}
-        for div_sensor in div_sensors:
-            sensor_id, attributes = self.extract_panel_reading(div_sensor)
-            if len(sensor_id) > 0:
-                all_attributes[sensor_id] = attributes
-            else:
-                _LOGGER.warning("sensor div contains no id")
-            #_LOGGER.warning("update {}:{}".format(sensor_id, attributes))
-
-        return all_attributes
-
-
-    def extract_panel_reading(self, sensor_div) -> Tuple[str, SensorAttributes]:
-        """
-        Parse the sensor panels and extract the information
-        Parameters
-            sensor_div - the <div class="sensor"> element - see the html below
-
-        Returns
-            Tuple (sensor_id, Dict of attributes)
-
-        input html - see tests \ test_source.html
-        """
-        attributes = {}
-        # name is after the <a> in sensor-header
-        sensor_headers = sensor_div.find_all('div', class_='sensor-header')
-        sensor_name = sensor_headers[0].h3.a.contents[0]
-        attributes["Name"] = sensor_name
-
-        # put all sensor-component names and values into this dictionary
-        sensor_components = sensor_div.find_all('div', class_='sensor-component')
-        
-        sensor_id = ""
-
-        for sensor in sensor_components:
-            h5 = sensor.find('h5').contents[0].lower()
-            h4 = sensor.find('h4').contents[0]
-            if h5 == 'id':
-                sensor_id = h4
-                continue
-            attributes[h5] = h4
-
-        # rain sensor which only contains the name attribute means no rainfall
-        if (re.compile(r'\b(rain)\b', flags=re.IGNORECASE).search(sensor_name) is not None
-            and len(attributes) == 1):
-            attributes["rain"] = "0 mm"
-
-        return sensor_id, attributes
