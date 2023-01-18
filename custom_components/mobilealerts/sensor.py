@@ -117,9 +117,9 @@ async def async_setup_platform(
     # If you do not want to retry setup on failure, use
     # coordinator.async_refresh() instead
     #
-    await coordinator.async_config_entry_first_refresh()
-
     async_add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
+
+    await coordinator.async_config_entry_first_refresh()
 
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
@@ -279,6 +279,7 @@ class MobileAlertsData:
         self._device_ids = []
 
     def register_device(self, device_id: str) -> None:
+        _LOGGER.debug("MibileAlertsData::register_device {0}".format(device_id))
         if device_id in self._device_ids:
             return
         self._device_ids.add(device_id)
