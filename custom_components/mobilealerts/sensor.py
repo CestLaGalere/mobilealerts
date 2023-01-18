@@ -274,6 +274,7 @@ class MobileAlertsData:
         for device in devices:
             self.register_device(device[CONF_DEVICE_ID])
 
+
     def register_device(self, device_id: str) -> None:
         #_LOGGER.debug("MobileAlertsData::register_device {0}".format(device_id))
         if device_id in self._device_ids:
