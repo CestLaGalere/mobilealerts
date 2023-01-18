@@ -93,7 +93,7 @@ class ApiError(Exception):
     pass
 
 
-async def async_setup_platform(
+def setup_platform(
     hass: HomeAssistantType, 
     config: ConfigType, 
     add_entities: AddEntitiesCallback, 
@@ -118,7 +118,7 @@ async def async_setup_platform(
     # coordinator.async_refresh() instead
     #
     add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
-    await coordinator.async_config_entry_first_refresh()
+    coordinator.async_config_entry_first_refresh()
 
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
@@ -163,7 +163,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
 
 
 class MobileAlertsData:
-    pass
+    pass.add
 
 
 class MobileAlertsSensor(CoordinatorEntity, Entity):
@@ -193,8 +193,6 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         self._state = ""
         self._id = self._device_id + self._type[:1]
         
-        #self._handle_coordinator_update()
-
         _LOGGER.debug("MobileAlertsSensor::init ID {0}".format(self._id))
 
 
