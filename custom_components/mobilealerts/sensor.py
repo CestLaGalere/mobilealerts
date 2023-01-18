@@ -179,7 +179,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
             self._type = "temperature"
 
         if self._type == "temperature":
-            self._measurement_type = "t"
+            self._measurement_type = "t1"
         elif  self._type == "humidity":
             self._measurement_type = "h"
         else:
@@ -190,7 +190,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         self._state = ""
         self._id = self._device_id + self._type[:1]
         
-        self._handle_coordinator_update()
+        self.extract_reading()
 
         _LOGGER.debug("MobileAlertsSensor::init ID {0}".format(self._id))
 
@@ -233,8 +233,12 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        self._data = self.coordinator.get_reading(self._device_id)
+        self.extract_reading()
+        self.async_write_ha_state()
 
+
+    def extract_reading(self):
+        self._data = self.coordinator.get_reading(self._device_id)
         #self._state, self._available = self.extract_reading(self._type, True)
         self._available = False
         if self._data is None:
@@ -253,12 +257,10 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
                 self._available = True
                 break
         elif self._measurement_type in measurement_data:
-            self._state = self._data[self.measurement_type]
+            self._state = measurement_data[self._measurement_type]
             self._available = True
 
         _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._name, self._state, self._available))
-        self.async_write_ha_state()
-
 
 
 class MobileAlertsData:
