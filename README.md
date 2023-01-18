@@ -2,6 +2,9 @@
 
 integrates home assistant to the mobilealerts sensor reading service
 
+## Version history
+see [Version History](ReleaseHistory.md)
+
 ## Installation
 To install this integration you will need to add this as a custom repository in HACS.
 Open HACS page, then click integrations
@@ -24,16 +27,17 @@ sensor:
     name: [enter name]
     phone_id: 123456789012
     devices:
-      - device_id: 0327312EA36A
+      - device_id: 012345678901
         name: Outside Temp
         type: t1
-      - device_id: 0327312EA36A
+      - device_id: 012345678901
         name: Outside Humidity
         type: h
 ```
 
 type:
-see [https://mobile-alerts.eu/info/public_server_api_documentation.pdf]
+
+see [https://mobile-alerts.eu/info/public_server_api_documentation.pdf](https://mobile-alerts.eu/info/public_server_api_documentation.pdf)
 
 type | description |
 | --- | --- |
@@ -57,9 +61,12 @@ type | description |
 | h7davg | Average humidity of the last 7 days. |
 | h30davg | Average humidity of the last 30 days. |
 | kp1t | The key press type. |
-| kp1c | The running counter of key presses. kp2t | The key press type. |
-| kp2c | The running counter of key presses. kp3t | The key press type. |
-| kp3c | The running counter of key presses. kp4t | The key press type. |
+| kp1c | The running counter of key presses. |
+| kp2t | The key press type. |
+| kp2c | The running counter of key presses. |
+| kp3t | The key press type. |
+| kp3c | The running counter of key presses. |
+| kp4t | The key press type. |
 | kp4c | The running counter of key presses. |
 | sc | If the measurement occured because of a status |
 | ap | The measured air pressure in hPa. |
@@ -67,4 +74,4 @@ type | description |
 ## development
 based on the DataUpdateCoordinator and CoordinatorEntity classes
 
-see https://developers.home-assistant.io/docs/integration_fetching_data/
+see [https://developers.home-assistant.io/docs/integration_fetching_data/](https://developers.home-assistant.io/docs/integration_fetching_data/)
