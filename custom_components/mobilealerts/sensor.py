@@ -189,12 +189,13 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
             self._measurement_type = ""
 
         self._data = None
+        self._available = False
         self._state = ""
         self._id = self._device_id + self._type[:1]
         
         #self._handle_coordinator_update()
 
-        _LOGGER.debug("MobileAlertsSensor::init ID {0}:{1}".format(self._id, self._state))
+        _LOGGER.debug("MobileAlertsSensor::init ID {0}".format(self._id))
 
 
     @property
@@ -277,7 +278,7 @@ class MobileAlertsData:
         self._device_ids = []
 
     def register_device(self, device_id: str) -> None:
-        _LOGGER.debug("MobileAlertsData::register_device {0}".format(device_id))
+        #_LOGGER.debug("MobileAlertsData::register_device {0}".format(device_id))
         if device_id in self._device_ids:
             return
 
