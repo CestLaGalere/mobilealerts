@@ -319,6 +319,7 @@ class MobileAlertsData:
                 'Content-Type': 'application/json'
                 }
             request_data = { "deviceids": ",".join(self._device_ids) }
+            json_data = json.dumps(request_data)
             # todo add phoneid if it's there
     #        if len(self._phone_id) > 0:
     #            data["phoneid"] = self._phone_id
@@ -326,7 +327,7 @@ class MobileAlertsData:
             page_text = ""
             timeout = aiohttp.ClientTimeout(total=30)
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.post(url, data=request_data, headers=headers) as response:
+                async with session.post(url, data=json_data, headers=headers) as response:
                     page_text = await response.read()
                     if response.status != 200:
                         _LOGGER.error("POST error: {0}, {1}, {2}".format(response.status, url, request_data))
