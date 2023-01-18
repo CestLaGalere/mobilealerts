@@ -93,7 +93,7 @@ class ApiError(Exception):
     pass
 
 
-def setup_platform(
+async def async_setup_platform(
     hass: HomeAssistantType, 
     config: ConfigType, 
     add_entities: AddEntitiesCallback, 
@@ -117,7 +117,7 @@ def setup_platform(
     # If you do not want to retry setup on failure, use
     # coordinator.async_refresh() instead
     #
-    coordinator.async_config_entry_first_refresh()
+    await coordinator.async_config_entry_first_refresh()
 
     add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
 
