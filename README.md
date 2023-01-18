@@ -18,6 +18,7 @@ Restart your Home Assistant to complete the installation.
 ## Configuration
 
 add elements to yaml sensor section:
+```
 sensor:
   - platform: mobilealerts
     name: [enter name]
@@ -25,13 +26,43 @@ sensor:
     devices:
       - device_id: 0327312EA36A
         name: Outside Temp
-        type: temperature
+        type: t1
       - device_id: 0327312EA36A
         name: Outside Humidity
-        type: humidity
+        type: h
+```
 
-type: one of temperature, humidity, rain
+type:
+see [https://mobile-alerts.eu/info/public_server_api_documentation.pdf]
 
+type | description |
+| --- | --- |
+| t1 | The measured temperature in celsius. |
+| t2 | The measured temperature in celsius of the external sensor / sensor 2. |
+| t3 | The measured temperature in celsius of temperature sensor 3. |
+| t4 | The measured temperature in celsius of temperature sensor 4. |
+| h | The measured humidity. |
+| h1 | The measured humidity of humidity sensor 1. |
+| h2 | The measured humidity of humidity sensor 2. |
+| h3 | The measured humidity of humidity sensor 3. |
+| h4 | The measured humidity of humidity sensor 4. |
+| r | The rain value in mm. 0.258 mm of rain are equal to one flip. |
+| rf | The flip count of the rain sensor. A flip equals 0.258 mm of rain. |
+| ws | The measured windspeed in m/s. |
+| wg | The measured gust in m/s. |
+| wd | The wind direction. 0: North, 1: North-northeast, 2: Northeast, 3: East-northeast, 4: East, 5: East-southeast, 6: Southeast, 7: South-Southeast, 8: South, 9: South-southwest, 10: Southwest, 11: West-southwest, 12: West, 13: West-northwest, 14: Northwest, 15: Northnorthwest |
+| w | If the window is opened or closed. |
+| h3havg | Average humidity of the last 3 hours. |
+| h24havg | Average humidity of the last 24 hours. |
+| h7davg | Average humidity of the last 7 days. |
+| h30davg | Average humidity of the last 30 days. |
+| kp1t | The key press type. |
+| kp1c | The running counter of key presses. kp2t | The key press type. |
+| kp2c | The running counter of key presses. kp3t | The key press type. |
+| kp3c | The running counter of key presses. kp4t | The key press type. |
+| kp4c | The running counter of key presses. |
+| sc | If the measurement occured because of a status |
+| ap | The measured air pressure in hPa. |
 
 ## development
 based on the DataUpdateCoordinator and CoordinatorEntity classes

@@ -73,7 +73,7 @@ SENSOR_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_DEVICE_ID): cv.string,
         vol.Required(CONF_NAME): cv.string,
-        vol.Required(CONF_TYPE): vol.All(cv.string, vol.In(SENSOR_READINGS)),
+        vol.Required(CONF_TYPE): cv.string
     }
 )
 
@@ -176,19 +176,12 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         if CONF_TYPE in device:
             self._type = device[CONF_TYPE]
         else:
-            self._type = "temperature"
-
-        if self._type == "temperature":
-            self._measurement_type = "t1"
-        elif  self._type == "humidity":
-            self._measurement_type = "h"
-        else:
-            self._measurement_type = ""
+            self._type = "t1"
 
         self._data = None
         self._available = False
         self._state = ""
-        self._id = self._device_id + self._type[:1]
+        self._id = self._device_id + self._type
         
         self.extract_reading()
 
@@ -248,7 +241,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
 
         measurement_data = self._data["measurement"]
 
-        if len(self._measurement_type) == 0:
+        if len(self._type) == 0:
             # run through measurements to get first non date one and use this
             for measurement, value in measurement_data.items():
                 if measurement in ["idx", "ts", "c"]:
@@ -256,8 +249,8 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
                 self._state = value
                 self._available = True
                 break
-        elif self._measurement_type in measurement_data:
-            self._state = measurement_data[self._measurement_type]
+        elif self._type in measurement_data:
+            self._state = measurement_data[self._type]
             self._available = True
 
         _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._name, self._state, self._available))
