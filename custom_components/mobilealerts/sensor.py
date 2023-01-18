@@ -282,6 +282,7 @@ class MobileAlertsData:
         if device_id in self._device_ids:
             return
         self._device_ids.add(device_id)
+        _LOGGER.debug("device {0} added - ({1})".format(device_id, self._device_ids))
 
 
     def get_reading(self, sensor_id : str) -> Optional[Dict]:
@@ -324,7 +325,7 @@ class MobileAlertsData:
                 async with session.post(url, data=request_data, headers=headers) as response:
                     page_text = await response.read()
                     if response.status != 200:
-                        _LOGGER.error("error getting data: {0}, {1}, {2}".format(response.status, url, request_data))
+                        _LOGGER.error("POST error: {0}, {1}, {2}".format(response.status, url, request_data))
 
             sensor_response = json.loads(page_text)
             # check data returned has no errors
