@@ -310,7 +310,7 @@ class MobileAlertsData:
     async def fetch_data(self) -> None:
         try:
             _LOGGER.debug("MobileAlertsData::fetch_data")
-            if (self._device_ids) == 0:
+            if len(self._device_ids) == 0:
                 _LOGGER.debug("no device ids registered")
                 return
 
