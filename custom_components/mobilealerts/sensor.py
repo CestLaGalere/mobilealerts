@@ -324,7 +324,7 @@ class MobileAlertsData:
                 async with session.post(url, data=request_data, headers=headers) as response:
                     page_text = await response.read()
                     if response.status != 200:
-                        raise Exception("requests getting data: {0}, {1}".format(response.status, url))
+                        _LOGGER.error("error getting data: {0}, {1}, {2}".format(response.status, url, request_data))
 
             sensor_response = json.loads(page_text)
             # check data returned has no errors
