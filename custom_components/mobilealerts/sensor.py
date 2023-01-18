@@ -93,7 +93,7 @@ class ApiError(Exception):
     pass
 
 
-def setup_platform(
+async def async_setup_platform(
     hass: HomeAssistantType, 
     config: ConfigType, 
     add_entities: AddEntitiesCallback, 
@@ -118,6 +118,7 @@ def setup_platform(
     # coordinator.async_refresh() instead
     #
     add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
+    await coordinator.async_config_entry_first_refresh()
 
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
@@ -191,8 +192,7 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         self._state = ""
         self._id = self._device_id + self._type[:1]
         
-        self._data = self.coordinator.get_reading(self._device_id)
-        self._state, self._available = self.extract_reading(self._type, True)
+        #self._handle_coordinator_update()
 
         _LOGGER.debug("MobileAlertsSensor::init ID {0}:{1}".format(self._id, self._state))
 
@@ -277,10 +277,10 @@ class MobileAlertsData:
         self._device_ids = []
 
     def register_device(self, device_id: str) -> None:
-        _LOGGER.debug("MibileAlertsData::register_device {0}".format(device_id))
+        _LOGGER.debug("MobileAlertsData::register_device {0}".format(device_id))
         if device_id in self._device_ids:
             return
-            
+
         self._device_ids.append(device_id)
         _LOGGER.debug("device {0} added - ({1})".format(device_id, self._device_ids))
 
