@@ -292,7 +292,7 @@ class MobileAlertsData:
         passed:
             sensor_id
         returns:
-            dictionary of returned data
+            json strcture of returned data
             None if the sensor isn't present
         """
         if self._data == None:
