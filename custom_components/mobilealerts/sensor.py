@@ -106,7 +106,7 @@ def setup_platform(
     if CONF_PHONE_ID in config:
         phone_id = config.get(CONF_PHONE_ID)
 
-    mad = MobileAlertsData(phone_id)
+    mad = MobileAlertsData(phone_id, config[CONF_DEVICES])
     coordinator = MobileAlertsCoordinator(hass, mad)
 
     # Fetch initial data so we have data when entities subscribe
@@ -117,8 +117,9 @@ def setup_platform(
     # If you do not want to retry setup on failure, use
     # coordinator.async_refresh() instead
     #
-    add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
     coordinator.async_config_entry_first_refresh()
+
+    add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
 
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
@@ -158,9 +159,6 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
     def get_reading(self, sensor_id : str) -> Optional[Dict]:
         return self._mobile_alerts_data.get_reading(sensor_id)
 
-    def get_reader(self):
-        return self._mobile_alerts_data
-
 
 class MobileAlertsData:
     pass
@@ -173,7 +171,6 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._device_id = device[CONF_DEVICE_ID]
-        coordinator.get_reader().register_device(self._device_id)
 
         self._name = device[CONF_NAME]
         if CONF_TYPE in device:
@@ -270,10 +267,12 @@ class MobileAlertsData:
     https://mobile-alerts.eu/info/public_server_api_documentation.pdf
     """
 
-    def __init__(self, phone_id: str) -> None:
+    def __init__(self, phone_id: str, devices) -> None:
         self._phone_id = phone_id
         self._data = None
         self._device_ids = []
+        for device in devices:
+            self.register_device(device[CONF_DEVICE_ID])
 
     def register_device(self, device_id: str) -> None:
         #_LOGGER.debug("MobileAlertsData::register_device {0}".format(device_id))
