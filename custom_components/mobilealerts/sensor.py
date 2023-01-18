@@ -190,6 +190,8 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         self._state = ""
         self._id = self._device_id + self._type[:1]
         
+        self._handle_coordinator_update()
+        
         _LOGGER.debug("MobileAlertsSensor::init ID {0}".format(self._id))
 
 
