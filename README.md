@@ -54,7 +54,7 @@ type | description |
 | rf | The flip count of the rain sensor. A flip equals 0.258 mm of rain. |
 | ws | The measured windspeed in m/s. |
 | wg | The measured gust in m/s. |
-| wd | The wind direction. 0: North, 1: North-northeast, 2: Northeast, 3: East-northeast, 4: East, 5: East-southeast, 6: Southeast, 7: South-Southeast, 8: South, 9: South-southwest, 10: Southwest, 11: West-southwest, 12: West, 13: West-northwest, 14: Northwest, 15: Northnorthwest |
+| wd | The wind direction. 0: N, 1: NNE, 2: NE, 3: ENE, 4: E, 5: ESE, 6: SE, 7: SSE, 8: S, 9: SSW, 10: SW, 11: WSW, 12: W, 13: WNW, 14: NW, 15: NNW. Direction degrees = wd * 22.5 |
 | w | If the window is opened or closed. |
 | h3havg | Average humidity of the last 3 hours. |
 | h24havg | Average humidity of the last 24 hours. |
