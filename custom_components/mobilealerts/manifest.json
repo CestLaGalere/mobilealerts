@@ -6,6 +6,6 @@
   "domain": "mobilealerts",
   "iot_class": "cloud_polling",
   "name": "mobilealerts",
-  "requirements": ["requests", "bs4"],
-  "version": "1.0.0"
+  "requirements": [],
+  "version": "1.0.1"
 }

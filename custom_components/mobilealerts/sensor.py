@@ -1,7 +1,6 @@
 """Support for the MobileAlerts service."""
 from datetime import timedelta
 import logging
-import re
 from typing import Any, Dict, Tuple, List, Mapping, Optional
 import json
 
@@ -18,14 +17,11 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
 )
-#from homeassistant.util import Throttle
-#, dt
 
 import async_timeout
 import aiohttp
 
 import voluptuous as vol
-from .mahelper import extract_value_units
 
 SensorAttributes = Dict[str, Any]
 
