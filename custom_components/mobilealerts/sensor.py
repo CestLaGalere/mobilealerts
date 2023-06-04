@@ -1,8 +1,9 @@
 """Support for the MobileAlerts service."""
 from datetime import timedelta
 import logging
-from typing import Any, Dict, Tuple, List, Mapping, Optional
+from typing import Any, Dict, Tuple, List, Mapping, Optional, cast
 import json
+
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.core import callback
@@ -36,6 +37,8 @@ from homeassistant.components.weather import (
 )
 
 from homeassistant.const import (
+    UnitOfTemperature,
+    PERCENTAGE,
     CONF_NAME,
     CONF_TYPE,
     CONF_DEVICE_ID,
@@ -44,9 +47,15 @@ from homeassistant.const import (
 
 from homeassistant.helpers.typing import (
     ConfigType,
+    StateType,
     DiscoveryInfoType,
     HomeAssistantType,
 )
+
+from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass, STATE_ON, STATE_OFF
+from homeassistant.components.sensor import SensorEntity, DOMAIN as SENSOR_DOMAIN, SensorEntityDescription, SensorDeviceClass, SensorStateClass
+
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -90,9 +99,9 @@ class ApiError(Exception):
 
 
 async def async_setup_platform(
-    hass: HomeAssistantType, 
-    config: ConfigType, 
-    add_entities: AddEntitiesCallback, 
+    hass: HomeAssistantType,
+    config: ConfigType,
+    add_entities: AddEntitiesCallback,
     discovery_info: Optional[DiscoveryInfoType] = None,
     ) -> None:
     """Set up the OpenWeatherMap weather platform."""
@@ -114,8 +123,16 @@ async def async_setup_platform(
     # coordinator.async_refresh() instead
     #
     await coordinator.async_config_entry_first_refresh()
-
-    add_entities(MobileAlertsSensor(coordinator, device) for device in config[CONF_DEVICES])
+    sensors = []
+    for device in config[CONF_DEVICES]:
+        device_type = device[CONF_TYPE]
+        if device_type in ["t1", "t2", "t3", "t4"]:
+            sensors.append(MobileAlertsTemperatureSensor(coordinator, device))
+        elif device_type in ["h", "h1", "h2", "h3", "h4"]:
+            sensors.append(MobileAlertsHumiditySensor(coordinator, device))
+        else:
+            sensors.append(MobileAlertsSensor(coordinator, device))
+    add_entities(sensors)
 
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
@@ -160,7 +177,7 @@ class MobileAlertsData:
     pass
 
 
-class MobileAlertsSensor(CoordinatorEntity, Entity):
+class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts sensor. """
 
     def __init__(self, coordinator, device: Dict[str, str]) -> None:
@@ -173,12 +190,12 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
             self._type = device[CONF_TYPE]
         else:
             self._type = "t1"
-
+        self._device_class = None
         self._data = None
         self._available = False
         self._state = ""
         self._id = self._device_id + self._type
-        
+
         self.extract_reading()
 
         _LOGGER.debug("MobileAlertsSensor::init ID {0}".format(self._id))
@@ -199,13 +216,13 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         return self._available
 
     @property
+    def attribution(self):
+        return ATTRIBUTION
+
+    @property
     def state(self) -> Optional[str]:
         #_LOGGER.debug("MobileAlertsSensor::state {0} available:{1}".format(self._name, self._available))
         return self._state
-
-    @property
-    def attribution(self):
-        return ATTRIBUTION
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any]:
@@ -252,10 +269,51 @@ class MobileAlertsSensor(CoordinatorEntity, Entity):
         _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._name, self._state, self._available))
 
 
+class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
+    """Implementation of a MobileAlerts humidity sensor. """
+
+    def __init__(self, coordinator, device: Dict[str, str]) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, device=device)
+        self._device_class = SensorDeviceClass.HUMIDITY
+        self._attr_native_unit_of_measurement = PERCENTAGE
+        self.entity_description = SensorEntityDescription(
+            SensorDeviceClass.HUMIDITY,
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=PERCENTAGE,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        return cast(float, self._state)
+
+
+
+class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
+    """Implementation of a MobileAlerts humidity sensor. """
+
+    def __init__(self, coordinator, device: Dict[str, str]) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, device=device)
+        self._device_class = SensorDeviceClass.TEMPERATURE
+        self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+        self.entity_description = SensorEntityDescription(
+            SensorDeviceClass.TEMPERATURE,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        return cast(float, self._state)
+
+
 class MobileAlertsData:
     """
     Get the latest data from MobileAlerts.
-    see REST API doc 
+    see REST API doc
     https://mobile-alerts.eu/de/home/
     https://mobile-alerts.eu/info/public_server_api_documentation.pdf
     """
