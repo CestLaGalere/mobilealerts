@@ -43,6 +43,7 @@ from homeassistant.helpers.typing import (
     ConfigType,
     StateType,
     HomeAssistantType,
+    DiscoveryInfoType
 )
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorDeviceClass, SensorStateClass
@@ -91,7 +92,8 @@ class ApiError(Exception):
 async def async_setup_platform(
         hass: HomeAssistantType,
         config: ConfigType,
-        add_entities: AddEntitiesCallback
+        add_entities: AddEntitiesCallback,
+        discovery_info: Optional[DiscoveryInfoType] = None,
 ) -> None:
     session = async_get_clientsession(hass)
 
@@ -190,7 +192,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
     def extract_reading(self):
         data = self.coordinator.get_reading(self._device_id)
         self._attr_extra_state_attributes = data
-        self._attr_state = STATE_UNKNOWN
+        self._attr_native_value = None
         self._attr_available = False
         if data is None:
             return
@@ -212,7 +214,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
             state = measurement_data[self._type]
             available = True
 
-        self._attr_state = state
+        self._attr_native_value = state
         self._attr_available = available
 
         _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._attr_name,
@@ -237,7 +239,7 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
 
     @property
     def native_value(self) -> StateType:
-        return cast(float, self._attr_state)
+        return cast(float, self._attr_native_value)
 
 
 class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
@@ -257,7 +259,7 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, Senso
 
     @property
     def native_value(self) -> StateType:
-        return cast(float, self._attr_state)
+        return cast(float, self._attr_native_value)
 
 
 class MobileAlertsData:
