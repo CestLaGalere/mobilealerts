@@ -23,8 +23,6 @@ import aiohttp
 
 import voluptuous as vol
 
-SensorAttributes = Dict[str, Any]
-
 from .const import (
     CONF_DEVICES,
     CONF_PHONE_ID,
@@ -41,7 +39,7 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_TYPE,
     CONF_DEVICE_ID,
-    ATTR_ATTRIBUTION,
+    ATTR_ATTRIBUTION, STATE_UNKNOWN,
 )
 
 from homeassistant.helpers.typing import (
@@ -51,9 +49,10 @@ from homeassistant.helpers.typing import (
     HomeAssistantType,
 )
 
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass, STATE_ON, STATE_OFF
 from homeassistant.components.sensor import SensorEntity, DOMAIN as SENSOR_DOMAIN, SensorEntityDescription, \
     SensorDeviceClass, SensorStateClass
+
+SensorAttributes = Dict[str, Any]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -167,10 +166,6 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
         return self._mobile_alerts_data.get_reading(sensor_id)
 
 
-class MobileAlertsData:
-    pass
-
-
 class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts sensor. """
 
@@ -178,56 +173,20 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._device_id = device[CONF_DEVICE_ID]
+        self._attr_name = device[CONF_NAME]
 
-        self._name = device[CONF_NAME]
         if CONF_TYPE in device:
             self._type = device[CONF_TYPE]
         else:
             self._type = "t1"
         self._device_class = None
-        self._data = None
-        self._available = False
-        self._state = ""
         self._id = self._device_id + self._type
+        self._attr_unique_id = self._id
 
         self.extract_reading()
+        self._attr_attribution = ATTRIBUTION
 
         _LOGGER.debug("MobileAlertsSensor::init ID {0}".format(self._id))
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def unique_id(self) -> str:
-        return self._id
-
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        # _LOGGER.debug("MobileAlertsSensor::available {0} available:{1}".format(self._name, self._available))
-        return self._available
-
-    @property
-    def attribution(self):
-        return ATTRIBUTION
-
-    @property
-    def state(self) -> Optional[str]:
-        # _LOGGER.debug("MobileAlertsSensor::state {0} available:{1}".format(self._name, self._available))
-        return self._state
-
-    @property
-    def extra_state_attributes(self) -> Mapping[str, Any]:
-        #        attrs = {}
-        #        if self._available:
-        #            for name, value in self._data:
-        #                #if name.replace(' ','') in SENSOR_READINGS:
-        #                if name == "measurement":
-        #
-        #                attrs[name] = value
-        #            attrs[ATTR_ATTRIBUTION] = ATTRIBUTION
-        return self._data
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -236,30 +195,36 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self.async_write_ha_state()
 
     def extract_reading(self):
-        self._data = self.coordinator.get_reading(self._device_id)
-        # self._state, self._available = self.extract_reading(self._type, True)
-        self._available = False
-        if self._data is None:
+        data = self.coordinator.get_reading(self._device_id)
+        self._attr_extra_state_attributes = data
+        self._attr_state = STATE_UNKNOWN
+        self._attr_available = False
+        if data is None:
             return
-        if "measurement" not in self._data:
+        if "measurement" not in data:
             return
 
-        measurement_data = self._data["measurement"]
-
+        measurement_data = data["measurement"]
+        state = STATE_UNKNOWN
+        available = False
         if len(self._type) == 0:
             # run through measurements to get first non date one and use this
             for measurement, value in measurement_data.items():
                 if measurement in ["idx", "ts", "c"]:
                     continue
-                self._state = value
-                self._available = True
+                state = value
+                available = True
                 break
         elif self._type in measurement_data:
-            self._state = measurement_data[self._type]
-            self._available = True
+            state = measurement_data[self._type]
+            available = True
 
-        _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._name, self._state,
-                                                                                          self._available))
+        self._attr_state = state
+        self._attr_available = available
+
+        _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._attr_name,
+                                                                                          self._attr_state,
+                                                                                          self._attr_available))
 
 
 class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
@@ -279,7 +244,7 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
 
     @property
     def native_value(self) -> StateType:
-        return cast(float, self._state)
+        return cast(float, self._attr_state)
 
 
 class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
@@ -299,7 +264,7 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, Senso
 
     @property
     def native_value(self) -> StateType:
-        return cast(float, self._state)
+        return cast(float, self._attr_state)
 
 
 class MobileAlertsData:
@@ -334,7 +299,7 @@ class MobileAlertsData:
             json strcture of returned data
             None if the sensor isn't present
         """
-        if self._data == None:
+        if self._data is None:
             # either still waiting for first call or calls have failed...
             _LOGGER.info("No sensor data")
             return None
@@ -373,7 +338,7 @@ class MobileAlertsData:
 
             sensor_response = json.loads(page_text)
             # check data returned has no errors
-            if sensor_response["success"] == False:
+            if not sensor_response["success"]:
                 _LOGGER.warning("Error getting data from MA {0}:{1}".format(sensor_response["errorcode"],
                                                                             sensor_response["errormessage"]))
                 self._data = None
