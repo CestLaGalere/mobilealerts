@@ -1,16 +1,13 @@
 """Support for the MobileAlerts service."""
 from datetime import timedelta
 import logging
-from typing import Any, Dict, Tuple, List, Mapping, Optional, cast
+from typing import Optional, cast
 import json
 
-from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.core import callback
-from homeassistant.exceptions import ConfigEntryAuthFailed
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -39,20 +36,18 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_TYPE,
     CONF_DEVICE_ID,
-    ATTR_ATTRIBUTION, STATE_UNKNOWN,
+    STATE_UNKNOWN,
 )
 
 from homeassistant.helpers.typing import (
     ConfigType,
     StateType,
-    DiscoveryInfoType,
     HomeAssistantType,
 )
 
-from homeassistant.components.sensor import SensorEntity, DOMAIN as SENSOR_DOMAIN, SensorEntityDescription, \
-    SensorDeviceClass, SensorStateClass
+from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorDeviceClass, SensorStateClass
 
-SensorAttributes = Dict[str, Any]
+SensorAttributes = dict[str, any]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,10 +91,8 @@ class ApiError(Exception):
 async def async_setup_platform(
         hass: HomeAssistantType,
         config: ConfigType,
-        add_entities: AddEntitiesCallback,
-        discovery_info: Optional[DiscoveryInfoType] = None,
+        add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up the OpenWeatherMap weather platform."""
     session = async_get_clientsession(hass)
 
     phone_id = ""
@@ -138,7 +131,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
-            name="My sensor",
+            name="MobileAlertsCoordinator",
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=SCAN_INTERVAL,
         )
@@ -162,14 +155,14 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
             _LOGGER.warning('Exception within MobileAlertsCoordinator::_async_update_data')
             raise
 
-    def get_reading(self, sensor_id: str) -> Optional[Dict]:
+    def get_reading(self, sensor_id: str) -> Optional[dict]:
         return self._mobile_alerts_data.get_reading(sensor_id)
 
 
 class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts sensor. """
 
-    def __init__(self, coordinator, device: Dict[str, str]) -> None:
+    def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._device_id = device[CONF_DEVICE_ID]
@@ -230,7 +223,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
 class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts humidity sensor. """
 
-    def __init__(self, coordinator, device: Dict[str, str]) -> None:
+    def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device)
         self._device_class = SensorDeviceClass.HUMIDITY
@@ -250,7 +243,7 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
 class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts humidity sensor. """
 
-    def __init__(self, coordinator, device: Dict[str, str]) -> None:
+    def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device)
         self._device_class = SensorDeviceClass.TEMPERATURE
@@ -290,7 +283,7 @@ class MobileAlertsData:
         self._device_ids.append(device_id)
         _LOGGER.debug("device {0} added - ({1})".format(device_id, self._device_ids))
 
-    def get_reading(self, sensor_id: str) -> Optional[Dict]:
+    def get_reading(self, sensor_id: str) -> Optional[dict]:
         """
         Return current data for the sensor
         passed:
