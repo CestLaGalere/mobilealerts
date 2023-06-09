@@ -4,7 +4,6 @@ import logging
 from typing import Any, Dict, Tuple, List, Mapping, Optional, cast
 import json
 
-
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -53,9 +52,8 @@ from homeassistant.helpers.typing import (
 )
 
 from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass, STATE_ON, STATE_OFF
-from homeassistant.components.sensor import SensorEntity, DOMAIN as SENSOR_DOMAIN, SensorEntityDescription, SensorDeviceClass, SensorStateClass
-
-
+from homeassistant.components.sensor import SensorEntity, DOMAIN as SENSOR_DOMAIN, SensorEntityDescription, \
+    SensorDeviceClass, SensorStateClass
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,11 +84,9 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Optional(CONF_PHONE_ID): cv.string,
         vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [SENSOR_SCHEMA])
-        #vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [cv.string])
+        # vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [cv.string])
     }
 )
-
-
 
 
 class ApiError(Exception):
@@ -99,11 +95,11 @@ class ApiError(Exception):
 
 
 async def async_setup_platform(
-    hass: HomeAssistantType,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: Optional[DiscoveryInfoType] = None,
-    ) -> None:
+        hass: HomeAssistantType,
+        config: ConfigType,
+        add_entities: AddEntitiesCallback,
+        discovery_info: Optional[DiscoveryInfoType] = None,
+) -> None:
     """Set up the OpenWeatherMap weather platform."""
     session = async_get_clientsession(hass)
 
@@ -149,7 +145,6 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
         )
         self._mobile_alerts_data = mobile_alerts_data
 
-
     async def _async_update_data(self):
         """Fetch data from API endpoint.
 
@@ -168,8 +163,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
             _LOGGER.warning('Exception within MobileAlertsCoordinator::_async_update_data')
             raise
 
-
-    def get_reading(self, sensor_id : str) -> Optional[Dict]:
+    def get_reading(self, sensor_id: str) -> Optional[Dict]:
         return self._mobile_alerts_data.get_reading(sensor_id)
 
 
@@ -200,7 +194,6 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
 
         _LOGGER.debug("MobileAlertsSensor::init ID {0}".format(self._id))
 
-
     @property
     def name(self) -> str:
         return self._name
@@ -212,7 +205,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        #_LOGGER.debug("MobileAlertsSensor::available {0} available:{1}".format(self._name, self._available))
+        # _LOGGER.debug("MobileAlertsSensor::available {0} available:{1}".format(self._name, self._available))
         return self._available
 
     @property
@@ -221,19 +214,19 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self) -> Optional[str]:
-        #_LOGGER.debug("MobileAlertsSensor::state {0} available:{1}".format(self._name, self._available))
+        # _LOGGER.debug("MobileAlertsSensor::state {0} available:{1}".format(self._name, self._available))
         return self._state
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any]:
-#        attrs = {}
-#        if self._available:
-#            for name, value in self._data:
-#                #if name.replace(' ','') in SENSOR_READINGS:
-#                if name == "measurement":
-#
-#                attrs[name] = value
-#            attrs[ATTR_ATTRIBUTION] = ATTRIBUTION
+        #        attrs = {}
+        #        if self._available:
+        #            for name, value in self._data:
+        #                #if name.replace(' ','') in SENSOR_READINGS:
+        #                if name == "measurement":
+        #
+        #                attrs[name] = value
+        #            attrs[ATTR_ATTRIBUTION] = ATTRIBUTION
         return self._data
 
     @callback
@@ -242,10 +235,9 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self.extract_reading()
         self.async_write_ha_state()
 
-
     def extract_reading(self):
         self._data = self.coordinator.get_reading(self._device_id)
-        #self._state, self._available = self.extract_reading(self._type, True)
+        # self._state, self._available = self.extract_reading(self._type, True)
         self._available = False
         if self._data is None:
             return
@@ -266,7 +258,8 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
             self._state = measurement_data[self._type]
             self._available = True
 
-        _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._name, self._state, self._available))
+        _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._name, self._state,
+                                                                                          self._available))
 
 
 class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
@@ -287,7 +280,6 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
     @property
     def native_value(self) -> StateType:
         return cast(float, self._state)
-
 
 
 class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
@@ -325,17 +317,15 @@ class MobileAlertsData:
         for device in devices:
             self.register_device(device[CONF_DEVICE_ID])
 
-
     def register_device(self, device_id: str) -> None:
-        #_LOGGER.debug("MobileAlertsData::register_device {0}".format(device_id))
+        # _LOGGER.debug("MobileAlertsData::register_device {0}".format(device_id))
         if device_id in self._device_ids:
             return
 
         self._device_ids.append(device_id)
         _LOGGER.debug("device {0} added - ({1})".format(device_id, self._device_ids))
 
-
-    def get_reading(self, sensor_id : str) -> Optional[Dict]:
+    def get_reading(self, sensor_id: str) -> Optional[Dict]:
         """
         Return current data for the sensor
         passed:
@@ -356,7 +346,6 @@ class MobileAlertsData:
         _LOGGER.error("Sensor ID {0} not found".format(sensor_id))
         return None
 
-
     async def fetch_data(self) -> None:
         try:
             _LOGGER.debug("MobileAlertsData::fetch_data")
@@ -367,12 +356,12 @@ class MobileAlertsData:
             url = 'https://www.data199.com/api/pv1/device/lastmeasurement'
             headers = {
                 'Content-Type': 'application/json'
-                }
-            request_data = { "deviceids": ",".join(self._device_ids) }
+            }
+            request_data = {"deviceids": ",".join(self._device_ids)}
             json_data = json.dumps(request_data)
             # todo add phoneid if it's there
-    #        if len(self._phone_id) > 0:
-    #            data["phoneid"] = self._phone_id
+            #        if len(self._phone_id) > 0:
+            #            data["phoneid"] = self._phone_id
 
             page_text = ""
             timeout = aiohttp.ClientTimeout(total=30)
@@ -385,7 +374,8 @@ class MobileAlertsData:
             sensor_response = json.loads(page_text)
             # check data returned has no errors
             if sensor_response["success"] == False:
-                _LOGGER.warning("Error getting data from MA {0}:{1}".format(sensor_response["errorcode"], sensor_response["errormessage"]))
+                _LOGGER.warning("Error getting data from MA {0}:{1}".format(sensor_response["errorcode"],
+                                                                            sensor_response["errormessage"]))
                 self._data = None
                 return
             if sensor_response is None:
