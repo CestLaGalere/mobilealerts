@@ -23,7 +23,7 @@ Restart your Home Assistant to complete the installation.
 add elements to yaml sensor section:
 ```
 sensor:
-  - platform: mobilealerts
+  - platform: mobile_alerts
     phone_id: 123456789012
     devices:
       - device_id: 012345678901
