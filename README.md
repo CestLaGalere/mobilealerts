@@ -11,7 +11,7 @@ Open HACS page, then click integrations
 Click the three dots top right, select Custom repositories
 
 1. URL enter <https://github.com/cestlagalere/mobilealerts>
-2. Catgory select Integration
+2. Category select Integration
 3. click Add
 
 Once installed you will then be able to install this integration from the HACS integrations page.
@@ -23,8 +23,7 @@ Restart your Home Assistant to complete the installation.
 add elements to yaml sensor section:
 ```
 sensor:
-  - platform: mobilealerts
-    name: [enter name]
+  - platform: mobile_alerts
     phone_id: 123456789012
     devices:
       - device_id: 012345678901

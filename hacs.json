@@ -1,5 +1,4 @@
 {
-  "name": "mobilealerts",
-  "render_readme": true,
-  "iot_class": "cloud_polling"
+  "name": "mobile_alerts",
+  "render_readme": true
 }
