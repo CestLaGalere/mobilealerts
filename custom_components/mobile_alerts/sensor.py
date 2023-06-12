@@ -37,6 +37,7 @@ from homeassistant.const import (
     CONF_TYPE,
     CONF_DEVICE_ID,
     STATE_UNKNOWN,
+    LENGTH_MILLIMETERS
 )
 
 from homeassistant.helpers.typing import (
@@ -120,6 +121,8 @@ async def async_setup_platform(
             sensors.append(MobileAlertsTemperatureSensor(coordinator, device))
         elif device_type in ["h", "h1", "h2", "h3", "h4"]:
             sensors.append(MobileAlertsHumiditySensor(coordinator, device))
+        elif device_type in ["r"]:
+            sensors.append(MobileAlertsRainSensor(coordinator, device))
         else:
             sensors.append(MobileAlertsSensor(coordinator, device))
     add_entities(sensors)
@@ -235,6 +238,26 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
             device_class=SensorDeviceClass.HUMIDITY,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=PERCENTAGE,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        return cast(float, self._attr_native_value)
+
+
+class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
+    """Implementation of a MobileAlerts rain sensor. """
+
+    def __init__(self, coordinator, device: dict[str, str]) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, device=device)
+        self._device_class = SensorDeviceClass.DISTANCE
+        self._attr_native_unit_of_measurement = LENGTH_MILLIMETERS
+        self.entity_description = SensorEntityDescription(
+            SensorDeviceClass.DISTANCE,
+            device_class=SensorDeviceClass.DISTANCE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=LENGTH_MILLIMETERS,
         )
 
     @property
