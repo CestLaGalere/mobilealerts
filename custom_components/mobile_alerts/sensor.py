@@ -205,6 +205,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         measurement_data = data["measurement"]
         state = STATE_UNKNOWN
         available = False
+
         if len(self._type) == 0:
             # run through measurements to get first non date one and use this
             for measurement, value in measurement_data.items():
@@ -220,9 +221,9 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self._attr_native_value = state
         self._attr_available = available
 
-        _LOGGER.debug("MobileAlertsSensor::_handle_coordinator_update {0} {1}:{2}".format(self._attr_name,
-                                                                                          self._attr_state,
-                                                                                          self._attr_available))
+        _LOGGER.debug("MobileAlertsSensor::extract_reading {0} {1}:{2}".format(self._attr_name,
+                                                                                self._attr_native_value,
+                                                                                self._attr_available))
 
 
 class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
@@ -251,11 +252,11 @@ class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity
     def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device)
-        self._device_class = SensorDeviceClass.DISTANCE
+        self._device_class = SensorDeviceClass.PRECIPITATION
         self._attr_native_unit_of_measurement = LENGTH_MILLIMETERS
         self.entity_description = SensorEntityDescription(
-            SensorDeviceClass.DISTANCE,
-            device_class=SensorDeviceClass.DISTANCE,
+            SensorDeviceClass.PRECIPITATION,
+            device_class=SensorDeviceClass.PRECIPITATION,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=LENGTH_MILLIMETERS,
         )
