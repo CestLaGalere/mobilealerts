@@ -24,6 +24,8 @@ from .const import (
     CONF_DEVICES,
     CONF_PHONE_ID,
     ATTRIBUTION,
+    WATER_SENSOR_DRY,
+    WATER_SENSOR_WET
 )
 
 from homeassistant.components.weather import (
