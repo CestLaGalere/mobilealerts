@@ -69,8 +69,15 @@ type | description |
 | kp4c | The running counter of key presses. |
 | sc | If the measurement occured because of a status |
 | ap | The measured air pressure in hPa. |
+| water | water presence sensor (t2 of MA10350) |
 
 ## development
 based on the DataUpdateCoordinator and CoordinatorEntity classes
 
 see [https://developers.home-assistant.io/docs/integration_fetching_data/](https://developers.home-assistant.io/docs/integration_fetching_data/)
+
+raw data can be viewed using 
+```
+curl -d "{'deviceids': 'XXXXXXXXXXXX'}" -H "Content-Type: application/json" https://www.data199.com/api/pv1/device/lastmeasurement
+```
+

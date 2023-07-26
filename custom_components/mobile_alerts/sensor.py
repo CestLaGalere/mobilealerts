@@ -123,6 +123,8 @@ async def async_setup_platform(
             sensors.append(MobileAlertsHumiditySensor(coordinator, device))
         elif device_type in ["r"]:
             sensors.append(MobileAlertsRainSensor(coordinator, device))
+        elif device_type in ["water"]:
+            sensors.append(MobileAlertsWaterSensor(coordinator, device))
         else:
             sensors.append(MobileAlertsSensor(coordinator, device))
     add_entities(sensors)
@@ -286,6 +288,30 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, Senso
         return cast(float, self._attr_native_value)
 
 
+class MobileAlertsWaterSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
+    """Implementation of a MobileAlerts humidity sensor. """
+
+    def __init__(self, coordinator, device: dict[str, str]) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, device=device)
+        self._device_class = None
+        self._attr_native_unit_of_measurement = None
+        self._type = "t2"
+        self.entity_description = SensorEntityDescription(
+            "state",
+            device_class=None,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=None,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        if self._attr_native_value == 0:
+            return WATER_SENSOR_DRY
+        else:
+            return WATER_SENSOR_WET
+
+
 class MobileAlertsData:
     """
     Get the latest data from MobileAlerts.
@@ -346,6 +372,8 @@ class MobileAlertsData:
             # todo add phoneid if it's there
             #        if len(self._phone_id) > 0:
             #            data["phoneid"] = self._phone_id
+
+            _LOGGER.debug("data {0}".format(json_data))
 
             page_text = ""
             timeout = aiohttp.ClientTimeout(total=30)
