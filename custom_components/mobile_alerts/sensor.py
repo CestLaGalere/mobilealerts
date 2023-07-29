@@ -23,9 +23,7 @@ import voluptuous as vol
 from .const import (
     CONF_DEVICES,
     CONF_PHONE_ID,
-    ATTRIBUTION,
-    WATER_SENSOR_DRY,
-    WATER_SENSOR_WET
+    ATTRIBUTION
 )
 
 from homeassistant.components.weather import (
@@ -39,7 +37,9 @@ from homeassistant.const import (
     CONF_TYPE,
     CONF_DEVICE_ID,
     STATE_UNKNOWN,
-    LENGTH_MILLIMETERS
+    LENGTH_MILLIMETERS,
+    STATE_ON,
+    STATE_OFF
 )
 
 from homeassistant.helpers.typing import (
@@ -50,6 +50,7 @@ from homeassistant.helpers.typing import (
 )
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorDeviceClass, SensorStateClass
+from homeassistant.components.binary_sensor import SensorEntity, BinarySensorEntityDescription, BinarySensorDeviceClass
 
 SensorAttributes = dict[str, any]
 
@@ -299,9 +300,9 @@ class MobileAlertsWaterSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntit
         self._device_class = None
         self._attr_native_unit_of_measurement = None
         self._type = "t2"
-        self.entity_description = SensorEntityDescription(
-            "state",
-            device_class=None,
+        self.entity_description = BinarySensorEntityDescription(
+            BinarySensorDeviceClass.MOISTURE,
+            device_class=BinarySensorDeviceClass.MOISTURE,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=None,
         )
@@ -309,9 +310,9 @@ class MobileAlertsWaterSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntit
     @property
     def native_value(self) -> StateType:
         if self._attr_native_value == 0:
-            return WATER_SENSOR_DRY
+            return STATE_OFF
         else:
-            return WATER_SENSOR_WET
+            return STATE_ON
 
 
 class MobileAlertsData:
