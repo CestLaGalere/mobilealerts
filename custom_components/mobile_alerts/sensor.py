@@ -291,7 +291,7 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, Senso
         return cast(float, self._attr_native_value)
 
 
-class MobileAlertsWaterSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
+class MobileAlertsWaterSensor(MobileAlertsSensor, CoordinatorEntity, BinarySensorEntity):
     """Implementation of a MobileAlerts humidity sensor. """
 
     def __init__(self, coordinator, device: dict[str, str]) -> None:
