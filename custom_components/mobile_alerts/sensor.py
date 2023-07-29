@@ -50,7 +50,7 @@ from homeassistant.helpers.typing import (
 )
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorDeviceClass, SensorStateClass
-from homeassistant.components.binary_sensor import SensorEntity, BinarySensorEntityDescription, BinarySensorDeviceClass
+from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorEntityDescription, BinarySensorDeviceClass
 
 SensorAttributes = dict[str, any]
 
