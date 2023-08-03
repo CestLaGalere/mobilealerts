@@ -298,7 +298,7 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
 
     def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, device=device)
+        super().__init__(coordinator)
         self._device_class = None
         self._type = "t2"
         self._attr_device_class = BinarySensorDeviceClass.MOISTURE
