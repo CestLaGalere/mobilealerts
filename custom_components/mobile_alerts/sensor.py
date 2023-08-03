@@ -50,7 +50,9 @@ from homeassistant.helpers.typing import (
 )
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorDeviceClass, SensorStateClass
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorEntityDescription, BinarySensorDeviceClass
+from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorEntityDescription, \
+    BinarySensorDeviceClass
+from homeassistant.helpers.entity import Entity
 
 SensorAttributes = dict[str, any]
 
@@ -227,8 +229,8 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self._attr_available = available
 
         _LOGGER.debug("MobileAlertsSensor::extract_reading {0} {1}:{2}".format(self._attr_name,
-                                                                                self._attr_native_value,
-                                                                                self._attr_available))
+                                                                               self._attr_native_value,
+                                                                               self._attr_available))
 
 
 class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
@@ -291,28 +293,62 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, Senso
         return cast(float, self._attr_native_value)
 
 
-class MobileAlertsWaterSensor(MobileAlertsSensor, CoordinatorEntity, BinarySensorEntity):
+class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
     """Implementation of a MobileAlerts humidity sensor. """
 
     def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device)
         self._device_class = None
-        self._attr_native_unit_of_measurement = None
         self._type = "t2"
-        self.entity_description = BinarySensorEntityDescription(
-            BinarySensorDeviceClass.MOISTURE,
-            device_class=BinarySensorDeviceClass.MOISTURE,
-            state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=None,
-        )
+        self._attr_device_class = BinarySensorDeviceClass.MOISTURE
+        self._device_id = device[CONF_DEVICE_ID]
+        self._attr_name = device[CONF_NAME]
+        self._id = self._device_id + self._type
+        self._attr_unique_id = self._id
+        self.extract_reading()
+        self._attr_attribution = ATTRIBUTION
 
-    @property
-    def native_value(self) -> StateType:
-        if self._attr_native_value == 0:
-            return STATE_OFF
-        else:
-            return STATE_ON
+        _LOGGER.debug("MobileAlertsWaterSensor::init ID {0}".format(self._id))
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self.extract_reading()
+        self.async_write_ha_state()
+
+    def extract_reading(self):
+        data = self.coordinator.get_reading(self._device_id)
+        self._attr_extra_state_attributes = data
+        self._attr_available = False
+        if data is None:
+            return
+        if "measurement" not in data:
+            return
+
+        measurement_data = data["measurement"]
+        state = STATE_UNKNOWN
+        available = False
+
+        if len(self._type) == 0:
+            # run through measurements to get first non date one and use this
+            for measurement, value in measurement_data.items():
+                if measurement in ["idx", "ts", "c"]:
+                    continue
+                state = value
+                available = True
+                break
+        elif self._type in measurement_data:
+            state = measurement_data[self._type]
+            available = True
+
+        if state is not None:
+            self._attr_is_on = int(state) == 1
+        self._attr_available = available
+
+        _LOGGER.debug("MobileAlertsWaterSensor::extract_reading {0} {1}:{2}".format(self._attr_name,
+                                                                                    self._attr_is_on,
+                                                                                    self._attr_available))
 
 
 class MobileAlertsData:
