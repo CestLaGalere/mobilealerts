@@ -32,12 +32,12 @@ from homeassistant.components.weather import (
 
 from homeassistant.const import (
     UnitOfTemperature,
+    UnitOfLength,
     PERCENTAGE,
     CONF_NAME,
     CONF_TYPE,
     CONF_DEVICE_ID,
     STATE_UNKNOWN,
-    LENGTH_MILLIMETERS,
     STATE_ON,
     STATE_OFF
 )
@@ -262,12 +262,12 @@ class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity
         """Initialize the sensor."""
         super().__init__(coordinator, device=device)
         self._device_class = SensorDeviceClass.PRECIPITATION
-        self._attr_native_unit_of_measurement = LENGTH_MILLIMETERS
+        self._attr_native_unit_of_measurement = UnitOfLength.MILLIMETERS
         self.entity_description = SensorEntityDescription(
             SensorDeviceClass.PRECIPITATION,
             device_class=SensorDeviceClass.PRECIPITATION,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=LENGTH_MILLIMETERS,
+            native_unit_of_measurement=UnitOfLength.MILLIMETERS,
         )
 
     @property
