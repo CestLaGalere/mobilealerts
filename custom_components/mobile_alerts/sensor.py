@@ -252,7 +252,7 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
     def native_value(self) -> StateType:
         if self._attr_native_value is None:
             return None
-        val = cast(float, self._attr_native_value)
+        val = float(self._attr_native_value)
         if val > 100 or val < 0:
             return None
         return val
@@ -297,7 +297,7 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, Senso
     def native_value(self) -> StateType:
         if self._attr_native_value is None:
             return None
-        val = cast(float, self._attr_native_value)
+        val = float(self._attr_native_value)
         if val > 100 or val < -100:
             return None
         return val
