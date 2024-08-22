@@ -4,7 +4,7 @@ import logging
 from typing import Optional, cast
 import json
 
-from homeassistant.core import callback
+from homeassistant.core import callback, HomeAssistant
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -45,7 +45,6 @@ from homeassistant.const import (
 from homeassistant.helpers.typing import (
     ConfigType,
     StateType,
-    HomeAssistantType,
     DiscoveryInfoType
 )
 
@@ -96,7 +95,7 @@ class ApiError(Exception):
 
 
 async def async_setup_platform(
-        hass: HomeAssistantType,
+        hass: HomeAssistant,
         config: ConfigType,
         add_entities: AddEntitiesCallback,
         discovery_info: Optional[DiscoveryInfoType] = None,
