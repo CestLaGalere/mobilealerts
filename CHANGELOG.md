@@ -2,6 +2,14 @@
 
 [Back](./README.md)
 
+## v1.3.0-beta1 (Jun 14 2025)
+
+- **feat**: use `async_refresh` instead of `async_config_entry_first_refresh` during setup_platform HA 2025.11 compliance #31
+- **fix**: HA Core warnings
+- **fix**: replace banned `async_timeout` by `asyncio.timeout`
+- **fix**: logging typo, cleanup unused variable
+- **fix**: clean up or deprecations, typings, warnings, formating from HA Core
+- **chore**: better changelog
 
 ## v1.2.3 (Aug 22 2024)
 
