@@ -100,15 +100,7 @@ async def async_setup_platform(
     mad = MobileAlertsData(phone_id, config[CONF_DEVICES])
     coordinator = MobileAlertsCoordinator(hass, mad)
 
-    # Fetch initial data so we have data when entities subscribe
-    #
-    # If the refresh fails, async_config_entry_first_refresh will
-    # raise ConfigEntryNotReady and setup will try again later
-    #
-    # If you do not want to retry setup on failure, use
-    # coordinator.async_refresh() instead
-    #
-    await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_refresh()
     sensors = []
     for device in config[CONF_DEVICES]:
         device_type = device[CONF_TYPE]
