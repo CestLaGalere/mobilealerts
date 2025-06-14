@@ -30,7 +30,6 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
@@ -90,7 +89,6 @@ async def async_setup_platform(
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Platform setup."""
-    session = async_get_clientsession(hass)
 
     phone_id = config.get(CONF_PHONE_ID, "")
 
@@ -174,7 +172,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self.extract_reading()
         self._attr_attribution = ATTRIBUTION
 
-        _LOGGER.debug("MobileAlertsSensor::init ID {%s}", self._id)
+        _LOGGER.debug("MobileAlertsSensor::init ID %s", self._id)
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -213,7 +211,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self._attr_available = available
 
         _LOGGER.debug(
-            "MobileAlertsSensor::extract_reading {%s} {%s}:{%s}",
+            "MobileAlertsSensor::extract_reading %s %s:%s",
             self._attr_name,
             self._attr_native_value,
             self._attr_available,
@@ -337,7 +335,7 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
         self.extract_reading()
         self._attr_attribution = ATTRIBUTION
 
-        _LOGGER.debug("MobileAlertsWaterSensor::init ID {%s}", self._id)
+        _LOGGER.debug("MobileAlertsWaterSensor::init ID %s", self._id)
 
     @callback
     def _handle_coordinator_update(self) -> None:
