@@ -1,57 +1,50 @@
 """Support for the MobileAlerts service."""
+
 from datetime import timedelta
-import logging
-from typing import Optional, cast
 import json
+import logging
+from typing import Any, Optional, cast
 
-from homeassistant.core import callback, HomeAssistant
+import aiohttp
+import async_timeout
+import voluptuous as vol
 
-import homeassistant.helpers.config_validation as cv
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
+)
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
+from homeassistant.components.weather import PLATFORM_SCHEMA as WEATHER_PLATFORM_SCHEMA
+from homeassistant.const import (
+    CONF_DEVICE_ID,
+    CONF_NAME,
+    CONF_TYPE,
+    PERCENTAGE,
+    STATE_OFF,
+    STATE_ON,
+    STATE_UNKNOWN,
+    UnitOfLength,
+    UnitOfTemperature,
+)
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
     UpdateFailed,
 )
 
-import async_timeout
-import aiohttp
-
-import voluptuous as vol
-
-from .const import (
-    CONF_DEVICES,
-    CONF_PHONE_ID,
-    ATTRIBUTION
-)
-
-from homeassistant.components.weather import (
-    PLATFORM_SCHEMA,
-)
-
-from homeassistant.const import (
-    UnitOfTemperature,
-    UnitOfLength,
-    PERCENTAGE,
-    CONF_NAME,
-    CONF_TYPE,
-    CONF_DEVICE_ID,
-    STATE_UNKNOWN,
-    STATE_ON,
-    STATE_OFF
-)
-
-from homeassistant.helpers.typing import (
-    ConfigType,
-    StateType,
-    DiscoveryInfoType
-)
-
-from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorDeviceClass, SensorStateClass
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorEntityDescription, \
-    BinarySensorDeviceClass
-from homeassistant.helpers.entity import Entity
+from .const import ATTRIBUTION, CONF_DEVICES, CONF_PHONE_ID
 
 SensorAttributes = dict[str, any]
 
@@ -76,14 +69,14 @@ SENSOR_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_DEVICE_ID): cv.string,
         vol.Required(CONF_NAME): cv.string,
-        vol.Required(CONF_TYPE): cv.string
+        vol.Required(CONF_TYPE): cv.string,
     }
 )
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
+PLATFORM_SCHEMA = WEATHER_PLATFORM_SCHEMA.extend(
     {
         vol.Optional(CONF_PHONE_ID): cv.string,
-        vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [SENSOR_SCHEMA])
+        vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [SENSOR_SCHEMA]),
         # vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [cv.string])
     }
 )
@@ -95,16 +88,14 @@ class ApiError(Exception):
 
 
 async def async_setup_platform(
-        hass: HomeAssistant,
-        config: ConfigType,
-        add_entities: AddEntitiesCallback,
-        discovery_info: Optional[DiscoveryInfoType] = None,
+    hass: HomeAssistant,
+    config: ConfigType,
+    add_entities: AddEntitiesCallback,
+    discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     session = async_get_clientsession(hass)
 
-    phone_id = ""
-    if CONF_PHONE_ID in config:
-        phone_id = config.get(CONF_PHONE_ID)
+    phone_id = config.get(CONF_PHONE_ID, "")
 
     mad = MobileAlertsData(phone_id, config[CONF_DEVICES])
     coordinator = MobileAlertsCoordinator(hass, mad)
@@ -136,7 +127,7 @@ async def async_setup_platform(
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
 class MobileAlertsCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, mobile_alerts_data):
+    def __init__(self, hass: HomeAssistant, mobile_alerts_data) -> None:
         """Initialize my coordinator."""
         super().__init__(
             hass,
@@ -161,17 +152,21 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
             async with async_timeout.timeout(30):
                 return await self._mobile_alerts_data.fetch_data()
         except ApiError as err:
-            raise UpdateFailed(f"Error communicating with API: {err}")
+            raise UpdateFailed("Error communicating with API") from err
         except:
-            _LOGGER.warning('Exception within MobileAlertsCoordinator::_async_update_data')
+            _LOGGER.warning(
+                "Exception within MobileAlertsCoordinator::_async_update_data"
+            )
             raise
 
-    def get_reading(self, sensor_id: str) -> Optional[dict]:
+    def get_reading(self, sensor_id: str) -> dict[str, Any] | None:
         return self._mobile_alerts_data.get_reading(sensor_id)
 
 
 class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
-    """Implementation of a MobileAlerts sensor. """
+    """Implementation of a MobileAlerts sensor."""
+
+    coordinator: MobileAlertsCoordinator
 
     def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
@@ -179,10 +174,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self._device_id = device[CONF_DEVICE_ID]
         self._attr_name = device[CONF_NAME]
 
-        if CONF_TYPE in device:
-            self._type = device[CONF_TYPE]
-        else:
-            self._type = "t1"
+        self._type = device.get(CONF_TYPE, "t1")
         self._device_class = None
         self._id = self._device_id + self._type
         self._attr_unique_id = self._id
@@ -200,7 +192,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
 
     def extract_reading(self):
         data = self.coordinator.get_reading(self._device_id)
-        self._attr_extra_state_attributes = data
+        self._attr_extra_state_attributes = data if data is not None else {}
         self._attr_native_value = None
         self._attr_available = False
         if data is None:
@@ -227,13 +219,15 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self._attr_native_value = state
         self._attr_available = available
 
-        _LOGGER.debug("MobileAlertsSensor::extract_reading {0} {1}:{2}".format(self._attr_name,
-                                                                               self._attr_native_value,
-                                                                               self._attr_available))
+        _LOGGER.debug(
+            "MobileAlertsSensor::extract_reading {0} {1}:{2}".format(
+                self._attr_name, self._attr_native_value, self._attr_available
+            )
+        )
 
 
 class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
-    """Implementation of a MobileAlerts humidity sensor. """
+    """Implementation of a MobileAlerts humidity sensor."""
 
     def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
@@ -241,7 +235,7 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
         self._device_class = SensorDeviceClass.HUMIDITY
         self._attr_native_unit_of_measurement = PERCENTAGE
         self.entity_description = SensorEntityDescription(
-            SensorDeviceClass.HUMIDITY,
+            key=SensorDeviceClass.HUMIDITY,
             device_class=SensorDeviceClass.HUMIDITY,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=PERCENTAGE,
@@ -252,7 +246,7 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
         if self._attr_native_value is None:
             return None
         try:
-            val = float(self._attr_native_value)
+            val = float(str(self._attr_native_value))
             if val > 100 or val < 0:
                 return None
             return val
@@ -261,7 +255,7 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
 
 
 class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
-    """Implementation of a MobileAlerts rain sensor. """
+    """Implementation of a MobileAlerts rain sensor."""
 
     def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
@@ -269,7 +263,7 @@ class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity
         self._device_class = SensorDeviceClass.PRECIPITATION
         self._attr_native_unit_of_measurement = UnitOfLength.MILLIMETERS
         self.entity_description = SensorEntityDescription(
-            SensorDeviceClass.PRECIPITATION,
+            key=SensorDeviceClass.PRECIPITATION,
             device_class=SensorDeviceClass.PRECIPITATION,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfLength.MILLIMETERS,
@@ -283,8 +277,10 @@ class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity
             return None
 
 
-class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
-    """Implementation of a MobileAlerts humidity sensor. """
+class MobileAlertsTemperatureSensor(
+    MobileAlertsSensor, CoordinatorEntity, SensorEntity
+):
+    """Implementation of a MobileAlerts humidity sensor."""
 
     def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
@@ -292,7 +288,7 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, Senso
         self._device_class = SensorDeviceClass.TEMPERATURE
         self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
         self.entity_description = SensorEntityDescription(
-            SensorDeviceClass.TEMPERATURE,
+            key=SensorDeviceClass.TEMPERATURE,
             device_class=SensorDeviceClass.TEMPERATURE,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -303,7 +299,7 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, Senso
         if self._attr_native_value is None:
             return None
         try:
-            val = float(self._attr_native_value)
+            val = float(str(self._attr_native_value))
             if val > 100 or val < -100:
                 return None
             return val
@@ -312,7 +308,9 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor, CoordinatorEntity, Senso
 
 
 class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
-    """Implementation of a MobileAlerts humidity sensor. """
+    """Implementation of a MobileAlerts humidity sensor."""
+
+    coordinator: MobileAlertsCoordinator
 
     def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
@@ -337,7 +335,7 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
 
     def extract_reading(self):
         data = self.coordinator.get_reading(self._device_id)
-        self._attr_extra_state_attributes = data
+        self._attr_extra_state_attributes = data if data is not None else {}
         self._attr_available = False
         if data is None:
             return
@@ -364,9 +362,11 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
             self._attr_is_on = int(state) == 1
         self._attr_available = available
 
-        _LOGGER.debug("MobileAlertsWaterSensor::extract_reading {0} {1}:{2}".format(self._attr_name,
-                                                                                    self._attr_is_on,
-                                                                                    self._attr_available))
+        _LOGGER.debug(
+            "MobileAlertsWaterSensor::extract_reading {0} {1}:{2}".format(
+                self._attr_name, self._attr_is_on, self._attr_available
+            )
+        )
 
 
 class MobileAlertsData:
@@ -407,7 +407,7 @@ class MobileAlertsData:
             return None
 
         for sensor_data in self._data:
-            if sensor_id == sensor_data['deviceid']:
+            if sensor_id == sensor_data["deviceid"]:
                 return sensor_data
 
         _LOGGER.error("Sensor ID {0} not found".format(sensor_id))
@@ -420,10 +420,8 @@ class MobileAlertsData:
                 _LOGGER.debug("no device ids registered")
                 return
 
-            url = 'https://www.data199.com/api/pv1/device/lastmeasurement'
-            headers = {
-                'Content-Type': 'application/json'
-            }
+            url = "https://www.data199.com/api/pv1/device/lastmeasurement"
+            headers = {"Content-Type": "application/json"}
             request_data = {"deviceids": ",".join(self._device_ids)}
             json_data = json.dumps(request_data)
             # todo add phoneid if it's there
@@ -435,27 +433,38 @@ class MobileAlertsData:
             page_text = ""
             timeout = aiohttp.ClientTimeout(total=30)
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.post(url, data=json_data, headers=headers) as response:
+                async with session.post(
+                    url, data=json_data, headers=headers
+                ) as response:
                     page_text = await response.read()
                     if response.status != 200:
-                        _LOGGER.error("POST error: {0}, {1}, {2}".format(response.status, url, request_data))
+                        _LOGGER.error(
+                            "POST error: {0}, {1}, {2}".format(
+                                response.status, url, request_data
+                            )
+                        )
 
             sensor_response = json.loads(page_text)
             # check data returned has no errors
             if not sensor_response["success"]:
-                _LOGGER.warning("Error getting data from MA {0}:{1}".format(sensor_response["errorcode"],
-                                                                            sensor_response["errormessage"]))
+                _LOGGER.warning(
+                    "Error getting data from MA {0}:{1}".format(
+                        sensor_response["errorcode"], sensor_response["errormessage"]
+                    )
+                )
                 self._data = None
                 return
             if sensor_response is None:
                 _LOGGER.warning("Failed to fetch data from OWM")
                 return
 
-            if 'devices' not in sensor_response:
-                _LOGGER.warning("MA data contains no devices {0}".format(sensor_response))
+            if "devices" not in sensor_response:
+                _LOGGER.warning(
+                    "MA data contains no devices {0}".format(sensor_response)
+                )
                 return
 
-            self._data = sensor_response['devices']
+            self._data = sensor_response["devices"]
 
         except ConnectionError:
             _LOGGER.warning("Unable to connect to MA URL")
