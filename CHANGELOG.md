@@ -3,13 +3,34 @@
 [Back](./README.md)
 
 
-version
+## v1.2.3 (Aug 22 2024)
 
-1.1.1 (16 Jun 23)
+- **fix**: HA 2025.5 compliance #28 #26
+
+## v1.2.2 (Jan 11 2024)
+
+- **fix**: casting type to float #16
+
+## v1.2.1 (Jan 9 2024)
+
+- **fix**: Sensor `_attr_native_value` type casting #15
+- **fix**: upgrade deprecated `LENGTH_MILLIMETERS` to `UnitOfLength.MILLIMETERS` #14
+
+## v1.2.0 (Dec 11 2023)
+
+- **fix**: add allowed ranges for humidity and temperature #8
+- **feat**: binary sensor MobileAlertsWaterSensor #5
+
+## v1.2.0-beta1 (Jun 16 2023)
+
+- **feat**: binary sensor MobileAlertsWaterSensor #5
+
+## v1.1.1 (16 Jun 2023)
+
 - MobileAlertsRainSensor SensorDeviceClass changed to PRECIPITATION
 
-1.1.0 (9 Jun 23)
-@petrleocompel
+## v1.1.0 (9 Jun 2023)
+
 - Domain change - BREAKING CHANGE, change mobilealerts in config yaml to mobile_alerts
 - Temperature and Rain Sensor classes created
 - can see icon of this integration in UI
@@ -18,7 +39,8 @@ version
 - native HA attributes and properties - no need to override lot - just write to correct properties
 - docs improvement
 
-18 Jan 23
+## v1.x (18 Jan 23)
+
 - now calls the mobile alerts api rather than scraping the web page
 - Breaking The type is now the key defined in the mobile alerts api
 - phoneid is optional
