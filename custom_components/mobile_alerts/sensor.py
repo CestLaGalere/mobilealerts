@@ -1,18 +1,17 @@
 """Support for the MobileAlerts service."""
 
+from asyncio import timeout
 from datetime import timedelta
 import json
 import logging
 from typing import Any, Final, cast
 
 import aiohttp
-import async_timeout
 import voluptuous as vol
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
-    BinarySensorEntityDescription,
 )
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -26,8 +25,6 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_TYPE,
     PERCENTAGE,
-    STATE_OFF,
-    STATE_ON,
     STATE_UNKNOWN,
     UnitOfLength,
     UnitOfTemperature,
@@ -35,7 +32,6 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
 from homeassistant.helpers.update_coordinator import (
@@ -144,7 +140,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
             # Note: asyncio.TimeoutError and aiohttp.ClientError are already
             # handled by the data update coordinator.
             _LOGGER.debug("MobileAlertsCoordinator::_async_update_data")
-            async with async_timeout.timeout(30):
+            async with timeout(30):
                 return await self._mobile_alerts_data.fetch_data()
         except ApiError as err:
             raise UpdateFailed("Error communicating with API") from err
@@ -452,16 +448,17 @@ class MobileAlertsData:
             _LOGGER.debug("data %s", json_data)
 
             page_text = ""
-            timeout = aiohttp.ClientTimeout(total=30)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.post(
-                    url, data=json_data, headers=headers
-                ) as response:
-                    page_text = await response.read()
-                    if response.status != 200:
-                        _LOGGER.error(
-                            "POST error: %s, %s, %s", response.status, url, request_data
-                        )
+            async with (
+                aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as session,
+                session.post(url, data=json_data, headers=headers) as response,
+            ):
+                page_text = await response.read()
+                if response.status != 200:
+                    _LOGGER.error(
+                        "POST error: %s, %s, %s", response.status, url, request_data
+                    )
 
             sensor_response = json.loads(page_text)
             # check data returned has no errors
