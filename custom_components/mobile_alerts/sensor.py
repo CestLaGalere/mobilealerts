@@ -3,7 +3,7 @@
 from datetime import timedelta
 import json
 import logging
-from typing import Any, Optional, cast
+from typing import Any, Final, cast
 
 import aiohttp
 import async_timeout
@@ -48,7 +48,8 @@ from .const import ATTRIBUTION, CONF_DEVICES, CONF_PHONE_ID
 
 SensorAttributes = dict[str, any]
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
+
 
 SENSOR_READINGS = [
     "temperature",
@@ -83,8 +84,7 @@ PLATFORM_SCHEMA = WEATHER_PLATFORM_SCHEMA.extend(
 
 
 class ApiError(Exception):
-    ...
-    pass
+    """Our custom ApiErrorException."""
 
 
 async def async_setup_platform(
@@ -93,6 +93,7 @@ async def async_setup_platform(
     add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
+    """Platform setup."""
     session = async_get_clientsession(hass)
 
     phone_id = config.get(CONF_PHONE_ID, "")
@@ -119,6 +120,8 @@ async def async_setup_platform(
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
 class MobileAlertsCoordinator(DataUpdateCoordinator):
+    """MobileAlerts implemented Coordinator."""
+
     def __init__(self, hass: HomeAssistant, mobile_alerts_data) -> None:
         """Initialize my coordinator."""
         super().__init__(
@@ -152,6 +155,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
             raise
 
     def get_reading(self, sensor_id: str) -> dict[str, Any] | None:
+        """Extract sensor value from coordinator."""
         return self._mobile_alerts_data.get_reading(sensor_id)
 
 
@@ -174,7 +178,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self.extract_reading()
         self._attr_attribution = ATTRIBUTION
 
-        _LOGGER.debug("MobileAlertsSensor::init ID {0}".format(self._id))
+        _LOGGER.debug("MobileAlertsSensor::init ID {%s}", self._id)
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -183,6 +187,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self.async_write_ha_state()
 
     def extract_reading(self):
+        """Extract sensor value from coordinator."""
         data = self.coordinator.get_reading(self._device_id)
         self._attr_extra_state_attributes = data if data is not None else {}
         self._attr_native_value = None
@@ -212,9 +217,10 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self._attr_available = available
 
         _LOGGER.debug(
-            "MobileAlertsSensor::extract_reading {0} {1}:{2}".format(
-                self._attr_name, self._attr_native_value, self._attr_available
-            )
+            "MobileAlertsSensor::extract_reading {%s} {%s}:{%s}",
+            self._attr_name,
+            self._attr_native_value,
+            self._attr_available,
         )
 
 
@@ -235,6 +241,7 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
 
     @property
     def native_value(self) -> StateType:
+        """Return the value reported by the sensor."""
         if self._attr_native_value is None:
             return None
         try:
@@ -242,7 +249,12 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
             if val > 100 or val < 0:
                 return None
             return val
-        except:
+        except ValueError:
+            _LOGGER.warning(
+                "Invalid value for entity %s: %s",
+                self.entity_id,
+                self._attr_native_value,
+            )
             return None
 
 
@@ -263,9 +275,15 @@ class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity
 
     @property
     def native_value(self) -> StateType:
+        """Return the value reported by the sensor."""
         try:
             return cast(float, self._attr_native_value)
-        except:
+        except ValueError:
+            _LOGGER.warning(
+                "Invalid value for entity %s: %s",
+                self.entity_id,
+                self._attr_native_value,
+            )
             return None
 
 
@@ -288,6 +306,7 @@ class MobileAlertsTemperatureSensor(
 
     @property
     def native_value(self) -> StateType:
+        """Return the value reported by the sensor."""
         if self._attr_native_value is None:
             return None
         try:
@@ -295,7 +314,12 @@ class MobileAlertsTemperatureSensor(
             if val > 100 or val < -100:
                 return None
             return val
-        except:
+        except ValueError:
+            _LOGGER.warning(
+                "Invalid value for entity %s: %s",
+                self.entity_id,
+                self._attr_native_value,
+            )
             return None
 
 
@@ -317,7 +341,7 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
         self.extract_reading()
         self._attr_attribution = ATTRIBUTION
 
-        _LOGGER.debug("MobileAlertsWaterSensor::init ID {0}".format(self._id))
+        _LOGGER.debug("MobileAlertsWaterSensor::init ID {%s}", self._id)
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -326,6 +350,7 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
         self.async_write_ha_state()
 
     def extract_reading(self):
+        """Extract reading to from coordinator."""
         data = self.coordinator.get_reading(self._device_id)
         self._attr_extra_state_attributes = data if data is not None else {}
         self._attr_available = False
@@ -355,21 +380,23 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
         self._attr_available = available
 
         _LOGGER.debug(
-            "MobileAlertsWaterSensor::extract_reading {0} {1}:{2}".format(
-                self._attr_name, self._attr_is_on, self._attr_available
-            )
+            "MobileAlertsWaterSensor::extract_reading %s %s:%s",
+            self._attr_name,
+            self._attr_is_on,
+            self._attr_available,
         )
 
 
 class MobileAlertsData:
-    """
-    Get the latest data from MobileAlerts.
+    """Get the latest data from MobileAlerts.
+
     see REST API doc
     https://mobile-alerts.eu/de/home/
     https://mobile-alerts.eu/info/public_server_api_documentation.pdf
     """
 
     def __init__(self, phone_id: str, devices) -> None:
+        """Init and register all passed devices."""
         self._phone_id = phone_id
         self._data = None
         self._device_ids = []
@@ -377,16 +404,17 @@ class MobileAlertsData:
             self.register_device(device[CONF_DEVICE_ID])
 
     def register_device(self, device_id: str) -> None:
+        """Register device in coordinator."""
         # _LOGGER.debug("MobileAlertsData::register_device {0}".format(device_id))
         if device_id in self._device_ids:
             return
 
         self._device_ids.append(device_id)
-        _LOGGER.debug("device {0} added - ({1})".format(device_id, self._device_ids))
+        _LOGGER.debug("device %s added - (%s)", device_id, self._device_ids)
 
-    def get_reading(self, sensor_id: str) -> Optional[dict]:
-        """
-        Return current data for the sensor
+    def get_reading(self, sensor_id: str) -> dict | None:
+        """Return current data for the sensor.
+
         passed:
             sensor_id
         returns:
@@ -402,10 +430,11 @@ class MobileAlertsData:
             if sensor_id == sensor_data["deviceid"]:
                 return sensor_data
 
-        _LOGGER.error("Sensor ID {0} not found".format(sensor_id))
+        _LOGGER.error("Sensor ID %s not found", sensor_id)
         return None
 
     async def fetch_data(self) -> None:
+        """Fetch data from API."""
         try:
             _LOGGER.debug("MobileAlertsData::fetch_data")
             if len(self._device_ids) == 0:
@@ -420,7 +449,7 @@ class MobileAlertsData:
             #        if len(self._phone_id) > 0:
             #            data["phoneid"] = self._phone_id
 
-            _LOGGER.debug("data {0}".format(json_data))
+            _LOGGER.debug("data %s", json_data)
 
             page_text = ""
             timeout = aiohttp.ClientTimeout(total=30)
@@ -431,18 +460,16 @@ class MobileAlertsData:
                     page_text = await response.read()
                     if response.status != 200:
                         _LOGGER.error(
-                            "POST error: {0}, {1}, {2}".format(
-                                response.status, url, request_data
-                            )
+                            "POST error: %s, %s, %s", response.status, url, request_data
                         )
 
             sensor_response = json.loads(page_text)
             # check data returned has no errors
             if not sensor_response["success"]:
                 _LOGGER.warning(
-                    "Error getting data from MA {0}:{1}".format(
-                        sensor_response["errorcode"], sensor_response["errormessage"]
-                    )
+                    "Error getting data from MA %s:%s",
+                    sensor_response["errorcode"],
+                    sensor_response["errormessage"],
                 )
                 self._data = None
                 return
@@ -451,19 +478,17 @@ class MobileAlertsData:
                 return
 
             if "devices" not in sensor_response:
-                _LOGGER.warning(
-                    "MA data contains no devices {0}".format(sensor_response)
-                )
+                _LOGGER.warning("MA data contains no devices %s", sensor_response)
                 return
 
             self._data = sensor_response["devices"]
 
-        except ConnectionError:
+        except ConnectionError as e:
             _LOGGER.warning("Unable to connect to MA URL")
-            raise ApiError()
-        except TimeoutError:
+            raise ApiError from e
+        except TimeoutError as e:
             _LOGGER.warning("Timeout connecting to MA URL")
-            raise ApiError()
+            raise ApiError from e
         except Exception as e:
-            _LOGGER.warning("{0} occurred details: {1}".format(e.__class__, e))
-            raise ApiError()
+            _LOGGER.warning("%s occurred details: %s", e.__class__, e)
+            raise ApiError from e
