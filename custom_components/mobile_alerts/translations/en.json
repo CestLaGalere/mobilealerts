@@ -1,0 +1,42 @@
+{
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "cable_temperature": {
+        "name": "Cable Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "external_humidity": {
+        "name": "External Humidity"
+      },
+      "rain": {
+        "name": "Rain"
+      },
+      "wind_speed": {
+        "name": "Wind Speed"
+      },
+      "wind_gust": {
+        "name": "Wind Gust"
+      },
+      "pressure": {
+        "name": "Air Pressure"
+      },
+      "air_quality": {
+        "name": "Air Quality"
+      },
+      "window": {
+        "name": "Window Status"
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "last_seen": {
+        "name": "Last Seen"
+      }
+    }
+  }
+}

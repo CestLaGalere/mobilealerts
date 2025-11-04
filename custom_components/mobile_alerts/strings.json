@@ -1,0 +1,91 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mobile Alerts Setup",
+        "description": "Click 'Submit' to create the Mobile Alerts integration. You can add your devices afterwards using the 'Add Device' button.",
+        "data": {}
+      },
+      "select_devices": {
+        "title": "Select Devices",
+        "description": "Select which devices you want to migrate from YAML configuration.",
+        "data": {
+          "devices": "Devices"
+        }
+      },
+      "import": {
+        "title": "Import YAML Configuration",
+        "description": "Migrating your existing YAML configuration to the new ConfigEntry format..."
+      },
+      "add_device": {
+        "title": "Add Mobile Alerts Device",
+        "description": "Enter your device ID to add a new device. You can find the device ID in the Mobile Alerts app under Settings > My Devices.",
+        "data": {
+          "device_id": "Device ID",
+          "name": "Device Name (optional)"
+        }
+      }
+    },
+    "error": {
+      "no_devices_selected": "Please select at least one device.",
+      "already_configured": "This integration is already configured.",
+      "invalid_yaml": "Invalid YAML configuration. Missing phone ID.",
+      "no_devices_in_yaml": "No devices found in YAML configuration.",
+      "no_valid_devices": "No valid devices found in YAML configuration.",
+      "unknown_error": "An unexpected error occurred. Please try again.",
+      "invalid_device_id": "Invalid device ID. Please check and try again.",
+      "device_not_found": "Device not found. Check the device ID and make sure the device has internet connection.",
+      "api_error": "Error communicating with Mobile Alerts API. Please check your internet connection and try again."
+    },
+    "abort": {
+      "no_devices_in_yaml": "Invalid YAML configuration: no devices found.",
+      "no_valid_devices": "No valid devices found in YAML configuration.",
+      "already_configured": "This integration is already configured.",
+      "unknown_error": "An unexpected error occurred during import.",
+      "user_already_configured": "Mobile Alerts is already configured. Use 'Add Device' to add more devices.",
+      "device_added": "Device added successfully! The integration will reload to apply changes.",
+      "device_already_added": "This device is already added to the configuration.",
+      "imported_devices": "YAML configuration imported! Creating entries for each device. Please wait..."
+    },
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "cable_temperature": {
+        "name": "Cable Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "external_humidity": {
+        "name": "External Humidity"
+      },
+      "rain": {
+        "name": "Rain"
+      },
+      "wind_speed": {
+        "name": "Wind Speed"
+      },
+      "wind_gust": {
+        "name": "Wind Gust"
+      },
+      "pressure": {
+        "name": "Air Pressure"
+      },
+      "air_quality": {
+        "name": "Air Quality"
+      },
+      "window": {
+        "name": "Window Status"
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "last_seen": {
+        "name": "Last Seen"
+      }
+    }
+  }
+}

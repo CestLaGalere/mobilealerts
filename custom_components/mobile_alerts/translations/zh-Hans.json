@@ -1,0 +1,42 @@
+{
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "温度"
+      },
+      "cable_temperature": {
+        "name": "电缆温度"
+      },
+      "humidity": {
+        "name": "湿度"
+      },
+      "external_humidity": {
+        "name": "外部湿度"
+      },
+      "rain": {
+        "name": "降雨"
+      },
+      "wind_speed": {
+        "name": "风速"
+      },
+      "wind_gust": {
+        "name": "风阵"
+      },
+      "pressure": {
+        "name": "气压"
+      },
+      "air_quality": {
+        "name": "空气质量"
+      },
+      "window": {
+        "name": "窗口状态"
+      },
+      "battery": {
+        "name": "电池"
+      },
+      "last_seen": {
+        "name": "最后看到"
+      }
+    }
+  }
+}

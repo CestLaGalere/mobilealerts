@@ -73,6 +73,7 @@ PLATFORM_SCHEMA = WEATHER_PLATFORM_SCHEMA.extend(
     {
         vol.Optional(CONF_PHONE_ID): cv.string,
         vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [SENSOR_SCHEMA]),
+        # vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [cv.string])
     }
 )
 
@@ -87,36 +88,17 @@ async def async_setup_platform(
     add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
-    """Platform setup from YAML configuration."""
-    _LOGGER.debug("async_setup_platform called for Mobile Alerts YAML setup")
+    """Platform setup."""
 
     phone_id = config.get(CONF_PHONE_ID, "")
-    devices_config = config.get(CONF_DEVICES, [])
 
-    _LOGGER.info(
-        "Setting up Mobile Alerts sensors from YAML: phone_id=%s, %d device(s)",
-        phone_id if phone_id else "(empty)",
-        len(devices_config),
-    )
-
-    if not devices_config:
-        _LOGGER.warning("No devices configured in YAML")
-        return
-
-    mad = MobileAlertsData(phone_id, devices_config)
+    mad = MobileAlertsData(phone_id, config[CONF_DEVICES])
     coordinator = MobileAlertsCoordinator(hass, mad)
 
     await coordinator.async_refresh()
     sensors = []
-    
-    # Keep track of unique device_ids to avoid duplicate Battery/Last Seen sensors
-    processed_device_ids = set()
-    
-    for device in devices_config:
+    for device in config[CONF_DEVICES]:
         device_type = device[CONF_TYPE]
-        device_id = device[CONF_DEVICE_ID]
-        
-        # Create the main sensor based on device type
         if device_type in ["t1", "t2", "t3", "t4"]:
             sensors.append(MobileAlertsTemperatureSensor(coordinator, device))
         elif device_type in ["h", "h1", "h2", "h3", "h4"]:
@@ -127,29 +109,7 @@ async def async_setup_platform(
             sensors.append(MobileAlertsWaterSensor(coordinator, device))
         else:
             sensors.append(MobileAlertsSensor(coordinator, device))
-        
-        # Add Battery and Last Seen sensors only once per unique device_id
-        if device_id not in processed_device_ids:
-            sensors.append(MobileAlertsBatterySensor(coordinator, device))
-            sensors.append(MobileAlertsLastSeenSensor(coordinator, device))
-            processed_device_ids.add(device_id)
-
     add_entities(sensors)
-    _LOGGER.info("Added %d sensor entities from %d config entries (%d unique devices)", 
-                 len(sensors), len(devices_config), len(processed_device_ids))
-
-
-# CONFIG FLOW SETUP DEACTIVATED FOR NOW - UNTIL YAML WORKS
-# This will be re-enabled in a later step
-
-# async def async_setup_entry(
-#     hass: HomeAssistant,
-#     config_entry,
-#     async_add_entities: AddEntitiesCallback,
-# ) -> None:
-#     """Set up Mobile Alerts sensors from a config entry - DEACTIVATED."""
-#     _LOGGER.debug("async_setup_entry called but DEACTIVATED")
-#     return
 
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
@@ -324,7 +284,7 @@ class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity
 class MobileAlertsTemperatureSensor(
     MobileAlertsSensor, CoordinatorEntity, SensorEntity
 ):
-    """Implementation of a MobileAlerts temperature sensor."""
+    """Implementation of a MobileAlerts humidity sensor."""
 
     def __init__(self, coordinator, device: dict[str, str]) -> None:
         """Initialize the sensor."""
@@ -358,7 +318,7 @@ class MobileAlertsTemperatureSensor(
 
 
 class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
-    """Implementation of a MobileAlerts water sensor."""
+    """Implementation of a MobileAlerts humidity sensor."""
 
     coordinator: MobileAlertsCoordinator
 
@@ -530,164 +490,3 @@ class MobileAlertsData:
         except Exception as e:
             _LOGGER.warning("%s occurred details: %s", e.__class__, e)
             raise ApiError from e
-
-
-class MobileAlertsBatterySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
-    """Implementation of a MobileAlerts battery sensor."""
-
-    def __init__(self, coordinator, device: dict[str, str]) -> None:
-        """Initialize the battery sensor."""
-        # Create a copy of device config with modified name and type for battery
-        battery_device = device.copy()
-        battery_device[CONF_NAME] = f"{device[CONF_NAME]} Battery"
-        battery_device[CONF_TYPE] = "battery"
-        
-        super().__init__(coordinator, device=battery_device)
-        # Override unique_id to include sensor type to avoid conflicts
-        self._attr_unique_id = f"{device[CONF_DEVICE_ID]}_battery"
-        # Use generic sensor without device class for string values
-        self._device_class = None
-        self._attr_native_unit_of_measurement = None
-        # Set battery icon manually since we can't use device_class=BATTERY with string values
-        self._attr_icon = "mdi:battery"
-        self.entity_description = SensorEntityDescription(
-            key="battery_status",
-            device_class=None,  # No device class for string-based status
-            state_class=None,   # String values don't have state class
-            native_unit_of_measurement=None,
-            icon="mdi:battery",
-        )
-
-    def extract_reading(self):
-        """Extract battery status from coordinator."""
-        data = self.coordinator.get_reading(self._device_id)
-        self._attr_extra_state_attributes = data if data is not None else {}
-        self._attr_native_value = None
-        self._attr_available = False
-        
-        if data is None:
-            return
-        if "measurement" not in data:
-            return
-
-        measurement_data = data["measurement"]
-        
-        # Check for lowbattery field in the API response
-        if "lowbattery" in measurement_data:
-            try:
-                low_battery = measurement_data["lowbattery"]
-                
-                # Convert boolean or string to battery status
-                if isinstance(low_battery, bool):
-                    self._attr_native_value = "Low" if low_battery else "OK"
-                elif isinstance(low_battery, str):
-                    # Handle string values like "true"/"false"
-                    if low_battery.lower() in ["true", "1", "yes"]:
-                        self._attr_native_value = "Low"
-                    else:
-                        self._attr_native_value = "OK"
-                else:
-                    # Fallback for other types
-                    self._attr_native_value = "Low" if low_battery else "OK"
-                    
-                # Set dynamic icon based on battery status
-                if self._attr_native_value == "Low":
-                    self._attr_icon = "mdi:battery-low"
-                else:
-                    self._attr_icon = "mdi:battery"
-                    
-                self._attr_available = True
-                
-            except (ValueError, TypeError):
-                self._attr_native_value = "Unknown"
-                self._attr_icon = "mdi:battery-unknown"
-                self._attr_available = True
-        else:
-            # If no lowbattery field found, assume OK
-            self._attr_native_value = "OK"
-            self._attr_icon = "mdi:battery"
-            self._attr_available = True
-
-        _LOGGER.debug(
-            "MobileAlertsBatterySensor::extract_reading %s %s:%s",
-            self._attr_name,
-            self._attr_native_value,
-            self._attr_available,
-        )
-
-
-class MobileAlertsLastSeenSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
-    """Implementation of a MobileAlerts last seen sensor."""
-
-    def __init__(self, coordinator, device: dict[str, str]) -> None:
-        """Initialize the last seen sensor."""
-        # Create a copy of device config with modified name and type for last seen
-        last_seen_device = device.copy()
-        last_seen_device[CONF_NAME] = f"{device[CONF_NAME]} Last Seen"
-        last_seen_device[CONF_TYPE] = "last_seen"
-        
-        super().__init__(coordinator, device=last_seen_device)
-        # Override unique_id to include sensor type to avoid conflicts
-        self._attr_unique_id = f"{device[CONF_DEVICE_ID]}_last_seen"
-        self._device_class = SensorDeviceClass.TIMESTAMP
-        self.entity_description = SensorEntityDescription(
-            key=SensorDeviceClass.TIMESTAMP,
-            device_class=SensorDeviceClass.TIMESTAMP,
-            state_class=None,  # Timestamps don't have state class
-        )
-
-    def extract_reading(self):
-        """Extract last seen timestamp from coordinator."""
-        data = self.coordinator.get_reading(self._device_id)
-        self._attr_extra_state_attributes = data if data is not None else {}
-        self._attr_native_value = None
-        self._attr_available = False
-        
-        if data is None:
-            return
-        if "measurement" not in data:
-            return
-
-        measurement_data = data["measurement"]
-        
-        # Last seen is in 'c' field (when sensor last transmitted to receiver)
-        if "c" in measurement_data:
-            try:
-                # 'c' should be a timestamp
-                timestamp_value = measurement_data["c"]
-                
-                # Convert timestamp to datetime object with timezone
-                from datetime import datetime, timezone
-                if isinstance(timestamp_value, (int, float)):
-                    # Unix timestamp - add UTC timezone
-                    self._attr_native_value = datetime.fromtimestamp(timestamp_value, tz=timezone.utc)
-                elif isinstance(timestamp_value, str):
-                    # ISO string or other format
-                    try:
-                        # Try parsing as ISO format first
-                        dt = datetime.fromisoformat(timestamp_value)
-                        # If no timezone info, assume UTC
-                        if dt.tzinfo is None:
-                            dt = dt.replace(tzinfo=timezone.utc)
-                        self._attr_native_value = dt
-                    except ValueError:
-                        # Try parsing as unix timestamp string
-                        unix_ts = float(timestamp_value)
-                        self._attr_native_value = datetime.fromtimestamp(unix_ts, tz=timezone.utc)
-                
-                self._attr_available = True
-                
-            except (ValueError, TypeError, OSError) as e:
-                _LOGGER.warning(
-                    "Could not parse last seen timestamp %s: %s", 
-                    measurement_data.get("c"), e
-                )
-                self._attr_native_value = None
-                self._attr_available = False
-
-        _LOGGER.debug(
-            "MobileAlertsLastSeenSensor::extract_reading %s %s:%s",
-            self._attr_name,
-            self._attr_native_value,
-            self._attr_available,
-        )
