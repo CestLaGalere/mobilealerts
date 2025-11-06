@@ -1,4 +1,25 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Adicionar dispositivo Mobile Alerts",
+        "description": "{info}",
+        "data": {
+          "device_id": "ID do dispositivo",
+          "name": "Nome (opcional)"
+        }
+      }
+    },
+    "error": {
+      "invalid_device_id": "ID de dispositivo inválido",
+      "invalid_device_id_format": "O ID do dispositivo deve ter 12 caracteres",
+      "device_not_found": "Dispositivo não encontrado",
+      "device_offline_no_data": "O dispositivo está offline ou ainda não enviou dados",
+      "sensor_type_detection_failed": "Não foi possível detectar o tipo de sensor",
+      "api_error": "Erro de API durante a validação",
+      "unknown_error": "Ocorreu um erro inesperado"
+    }
+  },
   "entity": {
     "sensor": {
       "temperature": {

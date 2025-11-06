@@ -1,4 +1,25 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mobile Alerts Gerät hinzufügen",
+        "description": "Geben Sie die Geräte-ID ein. Beispiel: 090005AC99E2\n\n{migration_info}",
+        "data": {
+          "device_id": "Geräte-ID",
+          "name": "Name (optional)"
+        }
+      }
+    },
+    "error": {
+      "invalid_device_id": "Ungültige Geräte-ID",
+      "invalid_device_id_format": "Geräte-ID muss 12 Zeichen lang sein",
+      "device_not_found": "Gerät nicht gefunden",
+      "device_offline_no_data": "Gerät ist offline oder hat noch keine Daten gesendet",
+      "sensor_type_detection_failed": "Sensortyp konnte nicht erkannt werden",
+      "api_error": "API-Fehler bei der Validierung",
+      "unknown_error": "Ein unerwarteter Fehler ist aufgetreten"
+    }
+  },
   "entity": {
     "sensor": {
       "temperature": {

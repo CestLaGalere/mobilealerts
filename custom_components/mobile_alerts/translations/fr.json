@@ -1,4 +1,25 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ajouter un appareil Mobile Alerts",
+        "description": "{info}",
+        "data": {
+          "device_id": "ID de l'appareil",
+          "name": "Nom (optionnel)"
+        }
+      }
+    },
+    "error": {
+      "invalid_device_id": "ID de l'appareil invalide",
+      "invalid_device_id_format": "L'ID de l'appareil doit avoir 12 caractères",
+      "device_not_found": "Appareil non trouvé",
+      "device_offline_no_data": "L'appareil est hors ligne ou n'a pas encore envoyé de données",
+      "sensor_type_detection_failed": "Le type de capteur n'a pas pu être détecté",
+      "api_error": "Erreur API lors de la validation",
+      "unknown_error": "Une erreur inattendue s'est produite"
+    }
+  },
   "entity": {
     "sensor": {
       "temperature": {

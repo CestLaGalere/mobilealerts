@@ -6,10 +6,12 @@ from typing import Any, Optional
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 
 from .api import ApiError, MobileAlertsApi
-from .const import CONF_TYPE, DOMAIN, detect_device_type
+from .const import CONF_TYPE, DOMAIN
+from .device import detect_device_model
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +28,7 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: Optional[dict[str, Any]] = None
-    ) -> dict[str, Any]:  # type: ignore[override]
+    ) -> FlowResult:
         """Handle the initial step - ask for device ID."""
         errors: dict[str, str] = {}
 
@@ -50,19 +52,23 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     # Check if device was found in response
                     device_data = api.get_reading(device_id)
                     if device_data is None:
-                        _LOGGER.warning("Device %s not found in API response", device_id)
+                        _LOGGER.warning(
+                            "Device %s not found in API response", device_id
+                        )
                         errors["base"] = "device_not_found"
                     else:
                         # Device found! Analyze the response to detect device type
-                        _LOGGER.debug("Device %s found, analyzing sensor types", device_id)
-                        
+                        _LOGGER.warning(
+                            "New device %s found, analyzing sensor types", device_id
+                        )
+
                         measurement = device_data.get("measurement", {})
-                        _LOGGER.debug(
-                            "Device %s measurement data: %s",
+                        _LOGGER.warning(
+                            "New Device %s measurement data: %s",
                             device_id,
                             measurement,
                         )
-                        
+
                         # Check if device has no measurement data (offline/never sent data)
                         if not measurement:
                             last_seen = device_data.get("lastseen")
@@ -75,24 +81,27 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             )
                             errors["base"] = "device_offline_no_data"
                         else:
-                            detected_type = detect_device_type(measurement)
+                            # Try to detect the device model from measurement data
+                            model_result = detect_device_model(measurement)
 
-                            if not detected_type:
+                            if not model_result:
                                 _LOGGER.error(
-                                    "Could not detect sensor type for device %s. "
+                                    "Could not detect device model for device %s. "
                                     "Raw measurement data: %s. Device data: %s. "
                                     "Please report this as an issue with the full log output.",
                                     device_id,
                                     measurement,
                                     device_data,
                                 )
-                                errors["base"] = "sensor_type_detection_failed"
+                                errors["base"] = "device_model_detection_failed"
                             else:
+                                model_id, model_info = model_result
                                 _LOGGER.info(
-                                    "Device %s validated: type=%s, measurement_keys=%s",
+                                    "Device %s identified as %s (%s): %s",
                                     device_id,
-                                    detected_type,
-                                    list(measurement.keys()),
+                                    model_id,
+                                    model_info["api_id"],
+                                    model_info["display_name"],
                                 )
 
                                 # Check if this device already exists
@@ -101,15 +110,21 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                                 # Store for later use
                                 self._device_data = device_data
-                                self._detected_type = detected_type
+                                self._detected_type = model_id
 
-                                # Create the config entry
+                                # Create the config entry with model information
+                                device_title = (
+                                    device_name
+                                    if device_name
+                                    else model_info["display_name"]
+                                )
+
                                 return self.async_create_entry(
-                                    title=device_name if device_name else f"Mobile Alerts {device_id}",
+                                    title=device_title,
                                     data={
                                         CONF_DEVICE_ID: device_id,
-                                        CONF_NAME: device_name if device_name else f"Device {device_id}",
-                                        CONF_TYPE: detected_type,
+                                        CONF_NAME: device_title,
+                                        CONF_TYPE: model_id,
                                     },
                                 )
 
@@ -120,18 +135,27 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.error("Unexpected error validating device: %s", err)
                     errors["base"] = "unknown_error"
 
-        # Show form
+        # Show form with info message
+        form_schema = vol.Schema(
+            {
+                vol.Required(CONF_DEVICE_ID): cv.string,
+                vol.Optional(CONF_NAME): cv.string,
+            }
+        )
+
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_DEVICE_ID): cv.string,
-                    vol.Optional(CONF_NAME): cv.string,
-                }
-            ),
+            data_schema=form_schema,
             errors=errors,
             description_placeholders={
-                "example": "090005AC99E2 (Test device with temp, humidity)",
+                "migration_info": (
+                    "Falls Sie bereits in configuration.yaml Geräte konfiguriert haben "
+                    "(ältere Version), werden diese nicht in der Benutzeroberfläche angezeigt. "
+                    "Die Entitäten sind jedoch noch vorhanden. Sie können die Geräte-ID erneut "
+                    "hinzufügen und Home Assistant neu starten. Die Geräte werden dann korrekt "
+                    "angezeigt. Danach können Sie die alten Mobile Alerts Einträge aus "
+                    "configuration.yaml entfernen."
+                ),
             },
         )
 

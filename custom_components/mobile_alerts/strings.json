@@ -2,54 +2,26 @@
   "config": {
     "step": {
       "user": {
-        "title": "Mobile Alerts Setup",
-        "description": "Click 'Submit' to create the Mobile Alerts integration. You can add your devices afterwards using the 'Add Device' button.",
-        "data": {}
-      },
-      "select_devices": {
-        "title": "Select Devices",
-        "description": "Select which devices you want to migrate from YAML configuration.",
-        "data": {
-          "devices": "Devices"
-        }
-      },
-      "import": {
-        "title": "Import YAML Configuration",
-        "description": "Migrating your existing YAML configuration to the new ConfigEntry format..."
-      },
-      "add_device": {
         "title": "Add Mobile Alerts Device",
-        "description": "Enter your device ID to add a new device. You can find the device ID in the Mobile Alerts app under Settings > My Devices.",
+        "description": "Enter the device ID. Example: 090005AC99E2\n\n{migration_info}",
         "data": {
           "device_id": "Device ID",
-          "name": "Device Name (optional)"
+          "name": "Name (optional)"
         }
       }
     },
     "error": {
-      "no_devices_selected": "Please select at least one device.",
-      "already_configured": "This integration is already configured.",
-      "invalid_yaml": "Invalid YAML configuration. Missing phone ID.",
-      "no_devices_in_yaml": "No devices found in YAML configuration.",
-      "no_valid_devices": "No valid devices found in YAML configuration.",
-      "unknown_error": "An unexpected error occurred. Please try again.",
-      "invalid_device_id": "Invalid device ID. Please enter a 12-character hex device ID.",
-      "invalid_device_id_format": "Invalid device ID format. Must be 12 hexadecimal characters (e.g., 090005AC99E2).",
-      "device_not_found": "Device not found. Check the device ID and make sure the device has internet connection.",
-      "device_offline_no_data": "Device has no measurement data (may be offline). Please make sure the device is connected and has sent data to Mobile Alerts at least once.",
-      "sensor_type_detection_failed": "Could not detect sensor type. The device may not be responding correctly. Please check the logs and report this issue.",
-      "api_error": "Error communicating with Mobile Alerts API. Please check your internet connection and try again."
+      "invalid_device_id": "Invalid device ID",
+      "invalid_device_id_format": "Device ID must be 12 characters long",
+      "device_not_found": "Device not found",
+      "device_offline_no_data": "Device is offline or has not sent any data yet",
+      "sensor_type_detection_failed": "Sensor type could not be detected",
+      "api_error": "API error during validation",
+      "unknown_error": "An unexpected error occurred"
     },
     "abort": {
-      "no_devices_in_yaml": "Invalid YAML configuration: no devices found.",
-      "no_valid_devices": "No valid devices found in YAML configuration.",
-      "already_configured": "This integration is already configured.",
-      "unknown_error": "An unexpected error occurred during import.",
-      "user_already_configured": "Mobile Alerts is already configured. Use 'Add Device' to add more devices.",
-      "device_added": "Device added successfully! The integration will reload to apply changes.",
-      "device_already_added": "This device is already added to the configuration.",
-      "imported_devices": "YAML configuration imported! Creating entries for each device. Please wait..."
-    },
+      "not_implemented": "Options not yet implemented"
+    }
   },
   "entity": {
     "sensor": {

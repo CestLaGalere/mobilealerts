@@ -1,4 +1,25 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "添加 Mobile Alerts 设备",
+        "description": "{info}",
+        "data": {
+          "device_id": "设备 ID",
+          "name": "名称（可选）"
+        }
+      }
+    },
+    "error": {
+      "invalid_device_id": "无效的设备 ID",
+      "invalid_device_id_format": "设备 ID 必须为 12 个字符",
+      "device_not_found": "未找到设备",
+      "device_offline_no_data": "设备离线或尚未发送任何数据",
+      "sensor_type_detection_failed": "无法检测到传感器类型",
+      "api_error": "验证期间出现 API 错误",
+      "unknown_error": "发生意外错误"
+    }
+  },
   "entity": {
     "sensor": {
       "temperature": {

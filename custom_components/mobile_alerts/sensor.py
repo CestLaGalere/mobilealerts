@@ -40,7 +40,13 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .api import MobileAlertsApi
-from .const import ATTRIBUTION, CONF_DEVICES, CONF_PHONE_ID, DOMAIN
+from .const import (
+    ATTRIBUTION,
+    CONF_DEVICES,
+    CONF_PHONE_ID,
+    DOMAIN,
+    SCAN_INTERVAL_MINUTES,
+)
 
 SensorAttributes = dict[str, any]
 
@@ -60,7 +66,7 @@ SENSOR_READINGS = [
 ]
 
 # Time between updating data from GitHub
-SCAN_INTERVAL = timedelta(minutes=10)
+SCAN_INTERVAL = timedelta(minutes=SCAN_INTERVAL_MINUTES)
 
 SENSOR_SCHEMA = vol.Schema(
     {
@@ -105,17 +111,17 @@ async def async_setup_platform(
 
     # Register all devices with API and build device info mapping
     device_info_map = {}  # Maps device_id to device info
-    
+
     for device in devices_config:
         device_id = device[CONF_DEVICE_ID]
         api.register_device(device_id)
-        
+
         # Create device info for each unique device_id (only once per device)
         if device_id not in device_info_map:
             # Use device_name directly from first occurrence in config
             # Don't try to strip suffixes - the user knows their device names best
             device_name = device[CONF_NAME]
-            
+
             device_info_map[device_id] = DeviceInfo(
                 identifiers={(DOMAIN, device_id)},
                 name=device_name,
@@ -123,7 +129,9 @@ async def async_setup_platform(
                 model="Mobile Alerts Sensor",
                 serial_number=device_id,
             )
-            _LOGGER.debug("Created device info for device_id=%s, name=%s", device_id, device_name)
+            _LOGGER.debug(
+                "Created device info for device_id=%s, name=%s", device_id, device_name
+            )
 
     # Create coordinator
     coordinator = MobileAlertsCoordinator(hass, api)
@@ -155,9 +163,7 @@ async def async_setup_platform(
             )
         elif device_type in ["water"]:
             sensors.append(
-                MobileAlertsWaterSensor(
-                    coordinator, device, device_info_map[device_id]
-                )
+                MobileAlertsWaterSensor(coordinator, device, device_info_map[device_id])
             )
         else:
             sensors.append(
@@ -187,17 +193,195 @@ async def async_setup_platform(
     )
 
 
-# CONFIG FLOW SETUP DEACTIVATED FOR NOW - UNTIL YAML WORKS
-# This will be re-enabled in a later step
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Mobile Alerts sensors from a config entry."""
+    _LOGGER.debug(
+        "async_setup_entry called for Mobile Alerts config entry %s",
+        config_entry.entry_id,
+    )
 
-# async def async_setup_entry(
-#     hass: HomeAssistant,
-#     config_entry,
-#     async_add_entities: AddEntitiesCallback,
-# ) -> None:
-#     """Set up Mobile Alerts sensors from a config entry - DEACTIVATED."""
-#     _LOGGER.debug("async_setup_entry called but DEACTIVATED")
-#     return
+    entry_data = config_entry.data
+    phone_id = entry_data.get(CONF_PHONE_ID, "")
+
+    # Check if this is a device-based entry or YAML-migration entry
+    device_id = entry_data.get(CONF_DEVICE_ID)
+
+    if device_id:
+        # Single device entry (from config_flow or YAML migration)
+        device_name = entry_data.get(CONF_NAME, f"Device {device_id}")
+        device_type = entry_data.get(CONF_TYPE, "")
+
+        _LOGGER.info(
+            "Setting up Mobile Alerts sensor from config entry: device_id=%s, name=%s, type=%s",
+            device_id,
+            device_name,
+            device_type,
+        )
+
+        # Create API instance
+        api = MobileAlertsApi(phone_id=phone_id if phone_id else "")
+
+        # Register device
+        api.register_device(device_id)
+
+        # Create coordinator
+        coordinator = MobileAlertsCoordinator(hass, api)
+
+        # Fetch initial data
+        await coordinator.async_config_entry_first_refresh()
+
+        # Create DeviceInfo
+        device_info = DeviceInfo(
+            identifiers={(DOMAIN, device_id)},
+            name=device_name,
+            manufacturer="Mobile Alerts",
+            model="Mobile Alerts Sensor",
+            serial_number=device_id,
+        )
+
+        # Create entities based on device type
+        entities: list[SensorEntity | BinarySensorEntity] = []
+
+        # Get the actual measurement data to know which entities to create
+        device_reading = coordinator.get_reading(device_id)
+        measurement = device_reading.get("measurement", {}) if device_reading else {}
+
+        _LOGGER.debug(
+            "Creating entities for device %s with measurement keys: %s",
+            device_id,
+            list(measurement.keys()) if measurement else [],
+        )
+
+        # Create entities for each measurement key found
+        measurement_type_map = {
+            "t1": (MobileAlertsTemperatureSensor, "Temperature T1"),
+            "t2": (MobileAlertsTemperatureSensor, "Temperature T2"),
+            "t3": (MobileAlertsTemperatureSensor, "Temperature T3"),
+            "t4": (MobileAlertsTemperatureSensor, "Temperature T4"),
+            "h": (MobileAlertsHumiditySensor, "Humidity"),
+            "h2": (MobileAlertsHumiditySensor, "Humidity 2"),
+            "h3": (MobileAlertsHumiditySensor, "Humidity 3"),
+            "h4": (MobileAlertsHumiditySensor, "Humidity 4"),
+            "r": (MobileAlertsRainSensor, "Rain"),
+            "rf": (MobileAlertsRainSensor, "Rain Flow"),
+            "ws": (MobileAlertsWindSpeedSensor, "Wind Speed"),
+            "wg": (MobileAlertsWindGustSensor, "Wind Gust"),
+            "wd": (MobileAlertsWindDirectionSensor, "Wind Direction"),
+            "ap": (MobileAlertsTemperatureSensor, "Air Pressure"),
+            "ppm": (MobileAlertsTemperatureSensor, "Air Quality"),
+            "w": (MobileAlertsTemperatureSensor, "Window"),
+        }
+
+        # Create sensors for each measurement type found in the data
+        for meas_key in measurement.keys():
+            # Skip metadata keys
+            if meas_key in ["idx", "ts", "c", "lb"]:
+                continue
+            # Skip alert flag keys
+            if any(
+                meas_key.endswith(suffix)
+                for suffix in [
+                    "hi",
+                    "lo",
+                    "hise",
+                    "lose",
+                    "hiee",
+                    "loee",
+                    "his",
+                    "los",
+                    "aactive",
+                    "as",
+                    "active",
+                    "st",
+                ]
+            ):
+                continue
+
+            # Check if this is a known measurement type
+            if meas_key in measurement_type_map:
+                sensor_class, display_name = measurement_type_map[meas_key]
+                device_dict = {
+                    CONF_DEVICE_ID: device_id,
+                    CONF_NAME: f"{device_name}",
+                    CONF_TYPE: meas_key,
+                }
+                try:
+                    entities.append(
+                        sensor_class(
+                            coordinator=coordinator,
+                            device=device_dict,
+                            device_info=device_info,
+                        )
+                    )
+                    _LOGGER.debug(
+                        "Created %s entity for device %s (measurement key: %s)",
+                        sensor_class.__name__,
+                        device_id,
+                        meas_key,
+                    )
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.error(
+                        "Error creating sensor for measurement key %s: %s",
+                        meas_key,
+                        err,
+                    )
+
+        # Battery and Last Seen sensors (for all device types)
+        device_dict_battery = {
+            CONF_DEVICE_ID: device_id,
+            CONF_NAME: f"{device_name}",
+            CONF_TYPE: "battery",
+        }
+        entities.append(
+            MobileAlertsBatterySensor(
+                coordinator=coordinator,
+                device=device_dict_battery,
+                device_info=device_info,
+            )
+        )
+
+        device_dict_lastseen = {
+            CONF_DEVICE_ID: device_id,
+            CONF_NAME: f"{device_name}",
+            CONF_TYPE: "last_seen",
+        }
+        entities.append(
+            MobileAlertsLastSeenSensor(
+                coordinator=coordinator,
+                device=device_dict_lastseen,
+                device_info=device_info,
+            )
+        )
+
+        add_entities(entities)
+
+        _LOGGER.debug("Added %d entities for device %s", len(entities), device_id)
+    else:
+        # Multi-device entry (from YAML config)
+        devices_config = entry_data.get(CONF_DEVICES, [])
+
+        if devices_config:
+            _LOGGER.info(
+                "Setting up Mobile Alerts sensors from config entry: phone_id=%s, %d device(s)",
+                phone_id if phone_id else "(empty)",
+                len(devices_config),
+            )
+
+            # Call the existing YAML setup logic
+            await async_setup_platform(
+                hass,
+                {
+                    CONF_PHONE_ID: phone_id,
+                    CONF_DEVICES: devices_config,
+                },
+                add_entities,
+            )
+        else:
+            _LOGGER.warning("No devices configured in config entry")
 
 
 # see https://developers.home-assistant.io/docs/integration_fetching_data/
@@ -236,7 +420,9 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
 
     coordinator: MobileAlertsCoordinator
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._device_id = device[CONF_DEVICE_ID]
@@ -247,7 +433,7 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self._device_class = None
         self._id = self._device_id + self._type
         self._attr_unique_id = self._id
-        
+
         # Set display name based on sensor type
         # This makes entity IDs more descriptive like "sensor.test1_temperature_t1"
         type_labels = {
@@ -270,14 +456,16 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
             "battery": "Battery",
             "last_seen": "Last Seen",
         }
-        
+
         type_label = type_labels.get(self._type, self._type.upper())
         self._attr_name = f"{self._device_name} {type_label}"
 
         self.extract_reading()
         self._attr_attribution = ATTRIBUTION
 
-        _LOGGER.debug("MobileAlertsSensor::init ID %s, name=%s", self._id, self._attr_name)
+        _LOGGER.debug(
+            "MobileAlertsSensor::init ID %s, name=%s", self._id, self._attr_name
+        )
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -326,7 +514,9 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
 class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts humidity sensor."""
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device, device_info=device_info)
         self._device_class = SensorDeviceClass.HUMIDITY
@@ -361,7 +551,9 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
 class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts rain sensor."""
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device, device_info=device_info)
         self._device_class = SensorDeviceClass.PRECIPITATION
@@ -391,7 +583,9 @@ class MobileAlertsRainSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity
 class MobileAlertsWindSpeedSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts wind speed sensor."""
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device, device_info=device_info)
         self._device_class = SensorDeviceClass.WIND_SPEED
@@ -418,10 +612,14 @@ class MobileAlertsWindSpeedSensor(MobileAlertsSensor, CoordinatorEntity, SensorE
             return None
 
 
-class MobileAlertsWindDirectionSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
+class MobileAlertsWindDirectionSensor(
+    MobileAlertsSensor, CoordinatorEntity, SensorEntity
+):
     """Implementation of a MobileAlerts wind direction sensor."""
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device, device_info=device_info)
         self._device_class = None  # No device class for direction
@@ -456,7 +654,9 @@ class MobileAlertsWindDirectionSensor(MobileAlertsSensor, CoordinatorEntity, Sen
 class MobileAlertsWindGustSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts wind gust sensor."""
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device, device_info=device_info)
         self._device_class = None  # Wind gust doesn't have a device class in HA
@@ -488,7 +688,9 @@ class MobileAlertsTemperatureSensor(
 ):
     """Implementation of a MobileAlerts temperature sensor."""
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, device=device, device_info=device_info)
         self._device_class = SensorDeviceClass.TEMPERATURE
@@ -525,7 +727,9 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
 
     coordinator: MobileAlertsCoordinator
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._device_class = None
@@ -588,7 +792,9 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
 class MobileAlertsBatterySensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts battery sensor."""
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the battery sensor."""
         # Create a copy of device config with type for battery
         # Don't modify the name - the base class will add the type label
@@ -672,7 +878,9 @@ class MobileAlertsBatterySensor(MobileAlertsSensor, CoordinatorEntity, SensorEnt
 class MobileAlertsLastSeenSensor(MobileAlertsSensor, CoordinatorEntity, SensorEntity):
     """Implementation of a MobileAlerts last seen sensor."""
 
-    def __init__(self, coordinator, device: dict[str, str], device_info: DeviceInfo) -> None:
+    def __init__(
+        self, coordinator, device: dict[str, str], device_info: DeviceInfo
+    ) -> None:
         """Initialize the last seen sensor."""
         # Create a copy of device config with type for last seen
         # Don't modify the name - the base class will add the type label
@@ -749,180 +957,3 @@ class MobileAlertsLastSeenSensor(MobileAlertsSensor, CoordinatorEntity, SensorEn
             self._attr_native_value,
             self._attr_available,
         )
-
-
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry,
-    add_entities: AddEntitiesCallback,
-) -> None:
-    """Set up Mobile Alerts sensors from a config entry."""
-    _LOGGER.debug("async_setup_entry called for Mobile Alerts config entry %s", config_entry.entry_id)
-    
-    entry_data = config_entry.data
-    phone_id = entry_data.get(CONF_PHONE_ID, "")
-    
-    # Check if this is a device-based entry or YAML-migration entry
-    device_id = entry_data.get(CONF_DEVICE_ID)
-    
-    if device_id:
-        # Single device entry (from config_flow or YAML migration)
-        device_name = entry_data.get(CONF_NAME, f"Device {device_id}")
-        device_type = entry_data.get(CONF_TYPE, "")
-        
-        _LOGGER.info(
-            "Setting up Mobile Alerts sensor from config entry: device_id=%s, name=%s, type=%s",
-            device_id,
-            device_name,
-            device_type,
-        )
-        
-        # Create API instance
-        api = MobileAlertsApi(phone_id=phone_id if phone_id else "")
-        
-        # Register device
-        api.register_device(device_id)
-        
-        # Create coordinator
-        coordinator = MobileAlertsCoordinator(hass, api)
-        
-        # Fetch initial data
-        await coordinator.async_config_entry_first_refresh()
-        
-        # Create DeviceInfo
-        device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_id)},
-            name=device_name,
-            manufacturer="Mobile Alerts",
-            model="Mobile Alerts Sensor",
-            serial_number=device_id,
-        )
-        
-        # Create entities based on device type
-        entities: list[SensorEntity | BinarySensorEntity] = []
-        
-        # Get the actual measurement data to know which entities to create
-        device_reading = coordinator.get_reading(device_id)
-        measurement = device_reading.get("measurement", {}) if device_reading else {}
-        
-        _LOGGER.debug(
-            "Creating entities for device %s with measurement keys: %s",
-            device_id,
-            list(measurement.keys()) if measurement else [],
-        )
-        
-        # Create entities for each measurement key found
-        measurement_type_map = {
-            "t1": (MobileAlertsTemperatureSensor, "Temperature T1"),
-            "t2": (MobileAlertsTemperatureSensor, "Temperature T2"),
-            "t3": (MobileAlertsTemperatureSensor, "Temperature T3"),
-            "t4": (MobileAlertsTemperatureSensor, "Temperature T4"),
-            "h": (MobileAlertsHumiditySensor, "Humidity"),
-            "h2": (MobileAlertsHumiditySensor, "Humidity 2"),
-            "h3": (MobileAlertsHumiditySensor, "Humidity 3"),
-            "h4": (MobileAlertsHumiditySensor, "Humidity 4"),
-            "r": (MobileAlertsRainSensor, "Rain"),
-            "rf": (MobileAlertsRainSensor, "Rain Flow"),
-            "ws": (MobileAlertsWindSpeedSensor, "Wind Speed"),
-            "wg": (MobileAlertsWindGustSensor, "Wind Gust"),
-            "wd": (MobileAlertsWindDirectionSensor, "Wind Direction"),
-            "ap": (MobileAlertsTemperatureSensor, "Air Pressure"),
-            "ppm": (MobileAlertsTemperatureSensor, "Air Quality"),
-            "w": (MobileAlertsTemperatureSensor, "Window"),
-        }
-        
-        # Create sensors for each measurement type found in the data
-        for meas_key in measurement.keys():
-            # Skip metadata keys
-            if meas_key in ["idx", "ts", "c", "lb"]:
-                continue
-            # Skip alert flag keys
-            if any(
-                meas_key.endswith(suffix)
-                for suffix in ["hi", "lo", "hise", "lose", "hiee", "loee", "his", "los", "aactive", "as", "active", "st"]
-            ):
-                continue
-            
-            # Check if this is a known measurement type
-            if meas_key in measurement_type_map:
-                sensor_class, display_name = measurement_type_map[meas_key]
-                device_dict = {
-                    CONF_DEVICE_ID: device_id,
-                    CONF_NAME: f"{device_name}",
-                    CONF_TYPE: meas_key,
-                }
-                try:
-                    entities.append(
-                        sensor_class(
-                            coordinator=coordinator,
-                            device=device_dict,
-                            device_info=device_info,
-                        )
-                    )
-                    _LOGGER.debug(
-                        "Created %s entity for device %s (measurement key: %s)",
-                        sensor_class.__name__,
-                        device_id,
-                        meas_key,
-                    )
-                except Exception as err:  # noqa: BLE001
-                    _LOGGER.error(
-                        "Error creating sensor for measurement key %s: %s",
-                        meas_key,
-                        err,
-                    )
-        
-        # Battery and Last Seen sensors (for all device types)
-        device_dict_battery = {
-            CONF_DEVICE_ID: device_id,
-            CONF_NAME: f"{device_name}",
-            CONF_TYPE: "battery",
-        }
-        entities.append(
-            MobileAlertsBatterySensor(
-                coordinator=coordinator,
-                device=device_dict_battery,
-                device_info=device_info,
-            )
-        )
-        
-        device_dict_lastseen = {
-            CONF_DEVICE_ID: device_id,
-            CONF_NAME: f"{device_name}",
-            CONF_TYPE: "last_seen",
-        }
-        entities.append(
-            MobileAlertsLastSeenSensor(
-                coordinator=coordinator,
-                device=device_dict_lastseen,
-                device_info=device_info,
-            )
-        )
-        
-        add_entities(entities)
-        
-        _LOGGER.debug("Added %d entities for device %s", len(entities), device_id)
-    else:
-        # Multi-device entry (from YAML config)
-        devices_config = entry_data.get(CONF_DEVICES, [])
-        
-        if devices_config:
-            _LOGGER.info(
-                "Setting up Mobile Alerts sensors from config entry: phone_id=%s, %d device(s)",
-                phone_id if phone_id else "(empty)",
-                len(devices_config),
-            )
-            
-            # Call the existing YAML setup logic
-            await async_setup_platform(
-                hass,
-                {
-                    CONF_PHONE_ID: phone_id,
-                    CONF_DEVICES: devices_config,
-                },
-                add_entities,
-            )
-        else:
-            _LOGGER.warning("No devices configured in config entry")
-
-

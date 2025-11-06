@@ -2,6 +2,10 @@
 
 integrates home assistant to the mobilealerts sensor reading service
 
+## Documentation
+
+- **[Supported Devices](docs/supported_devices.md)** - Complete list of all supported Mobile Alerts devices and their measurement keys
+
 ## Version history
 
 see [Version History](ReleaseHistory.md)
@@ -38,16 +42,17 @@ The new version uses Home Assistant's UI for configuration instead of YAML.
 
 After the integration is created:
 
-1. Click the **"Add Device"** button (top right of the integration card)
-2. Enter your device ID (found in Mobile Alerts app → Settings → My Devices)
-3. Click **Submit**
-4. Your device will now appear in your entities
+1. Click the **"Add Entry"** button (top right of the integration card)
+2. Enter your device ID (found in Mobile Alerts in your overview, each sensor has an ID: eg. 090005AC99E2)
+3. Optionally give a name for your sensor
+4. Click **Submit**
+5. Your device will now appear in your entities
 
 **Repeat for each device you want to monitor.**
 
 ### YAML Configuration (Deprecated but still supported)
 
-If you were using the old YAML configuration, it will be automatically migrated:
+You can still use the old YAML configuration, but the devices aren't shwon in the integration device list. You can see the loose entities on tab "Entities".
 
 ```yaml
 sensor:
@@ -62,15 +67,7 @@ sensor:
         type: h
 ```
 
-After update to the new version:
-
-1. Home Assistant detects the YAML configuration
-2. Automatically creates a ConfigEntry with your devices
-3. YAML configuration is ignored (can be safely removed)
-
-See [MIGRATION.md](MIGRATION.md) for detailed migration information.
-
-type:
+type list:
 
 see [https://mobile-alerts.eu/info/public_server_api_documentation.pdf](https://mobile-alerts.eu/info/public_server_api_documentation.pdf)
 
@@ -107,9 +104,20 @@ see [https://mobile-alerts.eu/info/public_server_api_documentation.pdf](https://
 | ap      | The measured air pressure in hPa.                                                                                                                                            |
 | water   | water presence sensor (t2 of MA10350)                                                                                                                                        |
 
-## development
+## Migration YAML verison to UI Version
 
-based on the DataUpdateCoordinator and CoordinatorEntity classes
+Unfortunately we can't migration the ymal configuration entries automatically. But it's very ease to migrate manually. The entity names remain unchanged.
+
+1. Open "Settings --> Devices & service --> Mobile Alerts"
+2. Klick on **add entry** and enter your existing device ID and a device name. The device name is new and was not existing in yaml.
+3. Klick on **Submit** and you can see an **empty device** (no worries it will work)
+4. Repeat from step 2 for other devices
+5. Restart Home Assistant and you can see the migrated devices
+6. Remove the Mobile Alerts entries from configuration.yaml
+
+## Development
+
+Based on the DataUpdateCoordinator and CoordinatorEntity classes
 
 see [https://developers.home-assistant.io/docs/integration_fetching_data/](https://developers.home-assistant.io/docs/integration_fetching_data/)
 
@@ -118,3 +126,20 @@ raw data can be viewed using
 ```
 curl -d "{'deviceids': 'XXXXXXXXXXXX'}" -H "Content-Type: application/json" https://www.data199.com/api/pv1/device/lastmeasurement
 ```
+
+If you have a Mobile Alerts device that aren't supported yet (see [List of Supported Devices](docs/supported_devices.md) ), do:
+
+1. Check the [Mobile Alerts website](https://mobile-alerts.eu) for the device model number
+2. Open an issue with:
+   - Device model number (e.g., MA10XXX)
+   - Device name
+   - List of measurement keys it provides
+   - Device description
+
+You can find the list with the measurement keys as following:
+
+1. "add entry" and enter the device id as usual
+2. Open logs under "Settings --> System --> Logs and search for "(Error) Could not detect device model for device ..." or check "homeassistant.log" with Studio Code Server.
+3. Enter this error message into the opened issue.
+
+This information will help us add support for new devices in future versions of the integration.
