@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "core.restore_state",
+  "data": [
+    {
+      "state": {"entity_id":"event.backup_automatic_backup","state":"unknown","attributes":{"event_types":["completed","failed","in_progress"],"event_type":null,"friendly_name":"Backup Automatic backup"},"last_changed":"2025-11-04T22:48:10.142141+00:00","last_reported":"2025-11-04T22:48:10.142141+00:00","last_updated":"2025-11-04T22:48:10.142141+00:00","context":{"id":"01K98GWT4YKDS4K19N3VGBG11A","parent_id":null,"user_id":null}},
+      "extra_data": {
+        "last_event_type": null,
+        "last_event_attributes": null
+      },
+      "last_seen": "2025-11-06T11:16:51.369698+00:00"
+    }
+  ]
+}

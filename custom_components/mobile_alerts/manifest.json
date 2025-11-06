@@ -4,6 +4,7 @@
   "codeowners": [
     "@cestlagalere"
   ],
+  "config_flow": true,
   "dependencies": [
     "http"
   ],

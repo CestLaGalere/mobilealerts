@@ -33,8 +33,11 @@
       "no_devices_in_yaml": "No devices found in YAML configuration.",
       "no_valid_devices": "No valid devices found in YAML configuration.",
       "unknown_error": "An unexpected error occurred. Please try again.",
-      "invalid_device_id": "Invalid device ID. Please check and try again.",
+      "invalid_device_id": "Invalid device ID. Please enter a 12-character hex device ID.",
+      "invalid_device_id_format": "Invalid device ID format. Must be 12 hexadecimal characters (e.g., 090005AC99E2).",
       "device_not_found": "Device not found. Check the device ID and make sure the device has internet connection.",
+      "device_offline_no_data": "Device has no measurement data (may be offline). Please make sure the device is connected and has sent data to Mobile Alerts at least once.",
+      "sensor_type_detection_failed": "Could not detect sensor type. The device may not be responding correctly. Please check the logs and report this issue.",
       "api_error": "Error communicating with Mobile Alerts API. Please check your internet connection and try again."
     },
     "abort": {

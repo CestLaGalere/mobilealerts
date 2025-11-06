@@ -1,0 +1,52 @@
+homeassistant:
+  name: Mobile Alerts Test
+  unit_system: metric
+  time_zone: UTC
+
+logger:
+  default: info
+  logs:
+    custom_components.mobile_alerts: debug
+
+# Enable HTTP API
+http:
+
+# Enable WebSocket API
+websocket_api:
+
+# History
+history:
+  exclude:
+    entities: []
+
+# API Password (deprecated but needed for legacy access)
+api:
+
+# Minimal configuration
+mobile_alerts:
+  phone_id: "405930384241"
+  devices:
+    - device_id: "0242A5BE1284"
+      name: "Pflanzenhaus Temperatur"
+      type: "t1"
+    - device_id: "0300F93013D1"
+      name: "Kinderzimmer OG Süd Temp"
+      type: "t1"
+    - device_id: "011F0B132A4F"
+      name: "Heizung Vorlauf Temp Raum"
+      type: "t1"
+    - device_id: "011C65488FBC"
+      name: "Heizung Rücklauf Temp Raum"
+      type: "t1"
+    - device_id: "0301506151D5"
+      name: "Wohnzimmer EG Temp"
+      type: "t1"
+    - device_id: "0379BE1FFFDC"
+      name: "Kinderzimmer OG Nord Temp"
+      type: "t1"
+    - device_id: "034408A9B313"
+      name: "Schlafzimmer EG Temp"
+      type: "t1"
+    - device_id: "032031D36DB7"
+      name: "Schutzraum Temp"
+      type: "t1"

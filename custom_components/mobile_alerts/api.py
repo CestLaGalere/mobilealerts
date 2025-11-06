@@ -112,6 +112,18 @@ class MobileAlertsApi:
                                 "Successfully fetched data for %d devices",
                                 len(self._data),
                             )
+                            # Log device details for debugging
+                            for device in self._data:
+                                device_id = device.get("deviceid")
+                                measurement = device.get("measurement", {})
+                                if measurement:
+                                    meas_keys = list(measurement.keys())
+                                    _LOGGER.debug(
+                                        "Device %s: measurement_keys=%s, data=%s",
+                                        device_id,
+                                        meas_keys,
+                                        measurement,
+                                    )
 
         except TimeoutError as err:
             _LOGGER.warning("Timeout connecting to Mobile Alerts API")

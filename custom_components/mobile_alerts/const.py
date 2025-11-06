@@ -1,5 +1,6 @@
 """Constants for Mobile Alerts integration."""
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,35 +16,16 @@ from homeassistant.const import (
     UnitOfSpeed,
 )
 
+_LOGGER = logging.getLogger(__name__)
+
 DOMAIN = "mobile_alerts"
 
 # Configuration keys
 CONF_DEVICES = "devices"
 CONF_PHONE_ID = "phone_id"
+CONF_TYPE = "type"
 
 ATTRIBUTION = "Data from MobileAlerts"
-
-# Device type mappings - based on API sensor types
-# Temperature sensors (all ID types with t1)
-DEVICE_TYPE_TEMPERATURE = ["t1"]
-# Cable/external temperature sensors (t2 on ID01, ID04, ID06, ID09, ID0F, ID17)
-DEVICE_TYPE_CABLE_TEMPERATURE = ["t2"]
-# Humidity sensors (all types with h)
-DEVICE_TYPE_HUMIDITY = ["h"]
-# External humidity sensors (h2 on ID07)
-DEVICE_TYPE_EXTERNAL_HUMIDITY = ["h2"]
-# Rain gauge (ID08)
-DEVICE_TYPE_RAIN = ["r"]
-# Wind sensors (ID0B)
-DEVICE_TYPE_WIND = ["ws"]
-# Air pressure sensors (ID18)
-DEVICE_TYPE_PRESSURE = ["ap"]
-# Air quality/PPM (ID05)
-DEVICE_TYPE_AIR_QUALITY = ["ppm"]
-# Window/door sensor (ID10)
-DEVICE_TYPE_WINDOW = ["w"]
-# AC power status (ID17 - t2 as boolean)
-DEVICE_TYPE_AC = ["ac"]
 
 # Entity types
 ENTITY_TYPE_TEMPERATURE = "temperature"
@@ -104,6 +86,7 @@ def detect_device_type(measurement: dict[str, Any]) -> str:
     keys.discard("ts")
     keys.discard("c")
     keys.discard("lb")
+    
     # Remove alert flag keys (end with "hi", "lo", "hise", "lose", "hiee", "loee", etc.)
     keys = {
         k
@@ -130,6 +113,9 @@ def detect_device_type(measurement: dict[str, Any]) -> str:
             ]
         )
     }
+    
+    # Store cleaned keys for logging unknown devices
+    original_keys = keys.copy()
 
     # Map measurement combinations to device types
     # Sorted by specificity (most specific first)
@@ -156,8 +142,8 @@ def detect_device_type(measurement: dict[str, Any]) -> str:
     if all(k in keys for k in ["t1", "t2", "h", "ppm"]):
         return "ppm"  # Air quality
 
-    # ID08: t1, r, rf (Rain Gauge)
-    if all(k in keys for k in ["t1", "r"]) or "rf" in keys:
+    # ID08: r or rf (Rain Gauge) - check before other types
+    if "r" in keys or "rf" in keys:
         return "r"  # Rain
 
     # ID0B: ws, wg, wd (Wind Sensor)
@@ -197,6 +183,13 @@ def detect_device_type(measurement: dict[str, Any]) -> str:
     if keys == {"t1"}:
         return "t1"  # Temperature
 
+    # Unknown device type - log raw data for debugging
+    _LOGGER.warning(
+        "Could not detect Mobile Alerts device type. Raw measurement keys: %s. "
+        "This might be a new device type. Please report this with the full measurement data: %s",
+        original_keys,
+        measurement,
+    )
     return ""
 
 
