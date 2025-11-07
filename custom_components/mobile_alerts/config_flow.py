@@ -140,7 +140,10 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                     from .const import DOMAIN
 
                                     hass = self.hass
-                                    if DOMAIN in hass.data and "coordinators" in hass.data[DOMAIN]:
+                                    if (
+                                        DOMAIN in hass.data
+                                        and "coordinators" in hass.data[DOMAIN]
+                                    ):
                                         coordinators = hass.data[DOMAIN]["coordinators"]
                                         phone_id = "ui_devices"
                                         if phone_id in coordinators:

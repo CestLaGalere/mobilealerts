@@ -119,7 +119,7 @@ async def async_setup_platform(
             entry_device_id = entry.data.get(CONF_DEVICE_ID)
             if entry_device_id:
                 duplicate_device_ids.add(entry_device_id)
-    
+
     # Filter out devices that exist in config entries and warn about them
     warned_devices = set()
     filtered_devices = []
@@ -141,7 +141,7 @@ async def async_setup_platform(
         else:
             # Only add devices that are NOT in config entries
             filtered_devices.append(device)
-    
+
     devices_config = filtered_devices
 
     _LOGGER.info(

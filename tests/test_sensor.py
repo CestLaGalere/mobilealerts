@@ -46,9 +46,13 @@ def sample_device_info():
 
 
 @pytest.mark.asyncio
-async def test_temperature_sensor_initialization(mock_coordinator, sample_device, sample_device_info):
+async def test_temperature_sensor_initialization(
+    mock_coordinator, sample_device, sample_device_info
+):
     """Test temperature sensor initialization."""
-    sensor = MobileAlertsTemperatureSensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsTemperatureSensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
 
     assert sensor._device_id == "A1B2C3D4E5F6"
     assert sensor._attr_name == "Test Device Temperature T1"
@@ -59,12 +63,16 @@ async def test_temperature_sensor_initialization(mock_coordinator, sample_device
 
 
 @pytest.mark.asyncio
-async def test_humidity_sensor_initialization(mock_coordinator, sample_device, sample_device_info):
+async def test_humidity_sensor_initialization(
+    mock_coordinator, sample_device, sample_device_info
+):
     """Test humidity sensor initialization."""
     humidity_device = sample_device.copy()
     humidity_device[CONF_TYPE] = "h"
 
-    sensor = MobileAlertsHumiditySensor(mock_coordinator, humidity_device, sample_device_info)
+    sensor = MobileAlertsHumiditySensor(
+        mock_coordinator, humidity_device, sample_device_info
+    )
 
     assert sensor._device_id == "A1B2C3D4E5F6"
     assert sensor._attr_name == "Test Device Humidity"
@@ -74,9 +82,13 @@ async def test_humidity_sensor_initialization(mock_coordinator, sample_device, s
 
 
 @pytest.mark.asyncio
-async def test_battery_sensor_initialization(mock_coordinator, sample_device, sample_device_info):
+async def test_battery_sensor_initialization(
+    mock_coordinator, sample_device, sample_device_info
+):
     """Test battery sensor initialization."""
-    sensor = MobileAlertsBatterySensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsBatterySensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
 
     assert sensor._device_id == "A1B2C3D4E5F6"
     assert sensor._attr_name == "Test Device Battery"
@@ -87,9 +99,13 @@ async def test_battery_sensor_initialization(mock_coordinator, sample_device, sa
 
 
 @pytest.mark.asyncio
-async def test_last_seen_sensor_initialization(mock_coordinator, sample_device, sample_device_info):
+async def test_last_seen_sensor_initialization(
+    mock_coordinator, sample_device, sample_device_info
+):
     """Test last seen sensor initialization."""
-    sensor = MobileAlertsLastSeenSensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsLastSeenSensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
 
     assert sensor._device_id == "A1B2C3D4E5F6"
     assert sensor._attr_name == "Test Device Last Seen"
@@ -99,7 +115,9 @@ async def test_last_seen_sensor_initialization(mock_coordinator, sample_device, 
 
 
 @pytest.mark.asyncio
-async def test_battery_sensor_extract_reading(mock_coordinator, sample_device, sample_device_info):
+async def test_battery_sensor_extract_reading(
+    mock_coordinator, sample_device, sample_device_info
+):
     """Test battery sensor data extraction."""
     # Mock API response with battery data
     mock_coordinator.get_reading.return_value = {
@@ -112,7 +130,9 @@ async def test_battery_sensor_extract_reading(mock_coordinator, sample_device, s
         },
     }
 
-    sensor = MobileAlertsBatterySensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsBatterySensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
     sensor.extract_reading()
 
     assert sensor._attr_native_value == "OK"
@@ -135,7 +155,9 @@ async def test_battery_sensor_extract_reading_normalized(
         },
     }
 
-    sensor = MobileAlertsBatterySensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsBatterySensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
     sensor.extract_reading()
 
     assert sensor._attr_native_value == "Low"
@@ -143,7 +165,9 @@ async def test_battery_sensor_extract_reading_normalized(
 
 
 @pytest.mark.asyncio
-async def test_battery_sensor_no_lowbattery_field(mock_coordinator, sample_device, sample_device_info):
+async def test_battery_sensor_no_lowbattery_field(
+    mock_coordinator, sample_device, sample_device_info
+):
     """Test battery sensor when no lowbattery field is present."""
     # Mock API response without lowbattery field
     mock_coordinator.get_reading.return_value = {
@@ -156,7 +180,9 @@ async def test_battery_sensor_no_lowbattery_field(mock_coordinator, sample_devic
         },
     }
 
-    sensor = MobileAlertsBatterySensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsBatterySensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
     sensor.extract_reading()
 
     # Should default to "OK" when no lowbattery field
@@ -166,7 +192,9 @@ async def test_battery_sensor_no_lowbattery_field(mock_coordinator, sample_devic
 
 
 @pytest.mark.asyncio
-async def test_battery_sensor_icon_logic(mock_coordinator, sample_device, sample_device_info):
+async def test_battery_sensor_icon_logic(
+    mock_coordinator, sample_device, sample_device_info
+):
     """Test battery sensor icon changes based on status."""
     # Test Low battery
     mock_coordinator.get_reading.return_value = {
@@ -174,7 +202,9 @@ async def test_battery_sensor_icon_logic(mock_coordinator, sample_device, sample
         "measurement": {"ts": 1699000000, "t1": 23.5, "lowbattery": True, "idx": 123},
     }
 
-    sensor = MobileAlertsBatterySensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsBatterySensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
     sensor.extract_reading()
 
     assert sensor._attr_native_value == "Low"
@@ -193,7 +223,9 @@ async def test_battery_sensor_icon_logic(mock_coordinator, sample_device, sample
 
 
 @pytest.mark.asyncio
-async def test_last_seen_sensor_extract_reading(mock_coordinator, sample_device, sample_device_info):
+async def test_last_seen_sensor_extract_reading(
+    mock_coordinator, sample_device, sample_device_info
+):
     """Test last seen sensor data extraction."""
     # Mock API response with timestamp data
     test_timestamp = 1699000000
@@ -207,7 +239,9 @@ async def test_last_seen_sensor_extract_reading(mock_coordinator, sample_device,
         },
     }
 
-    sensor = MobileAlertsLastSeenSensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsLastSeenSensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
     sensor.extract_reading()
 
     assert isinstance(sensor._attr_native_value, datetime)
@@ -222,7 +256,9 @@ async def test_sensor_no_data(mock_coordinator, sample_device, sample_device_inf
     """Test sensor behavior when no data is available."""
     mock_coordinator.get_reading.return_value = None
 
-    sensor = MobileAlertsBatterySensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsBatterySensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
     sensor.extract_reading()
 
     assert sensor._attr_native_value is None
@@ -230,14 +266,18 @@ async def test_sensor_no_data(mock_coordinator, sample_device, sample_device_inf
 
 
 @pytest.mark.asyncio
-async def test_sensor_no_measurement_data(mock_coordinator, sample_device, sample_device_info):
+async def test_sensor_no_measurement_data(
+    mock_coordinator, sample_device, sample_device_info
+):
     """Test sensor behavior when measurement data is missing."""
     mock_coordinator.get_reading.return_value = {
         "deviceid": "A1B2C3D4E5F6",
         # No "measurement" key
     }
 
-    sensor = MobileAlertsBatterySensor(mock_coordinator, sample_device, sample_device_info)
+    sensor = MobileAlertsBatterySensor(
+        mock_coordinator, sample_device, sample_device_info
+    )
     sensor.extract_reading()
 
     assert sensor._attr_native_value is None

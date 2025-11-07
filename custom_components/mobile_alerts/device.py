@@ -314,13 +314,13 @@ def detect_device_model(
     # Use scoring to prefer models with more matching keys
     best_match = None
     best_score = 0
-    
+
     for model_id, model_info in DEVICE_MODELS.items():
         if model_info["measurement_keys"].issubset(keys):
             # Score = number of model keys that match
             # This prefers models with more required keys
             score = len(model_info["measurement_keys"])
-            
+
             if score > best_score:
                 best_score = score
                 best_match = (model_id, model_info)
@@ -342,7 +342,7 @@ def detect_device_model(
                     model_info["measurement_keys"],
                     keys,
                 )
-    
+
     if best_match:
         return best_match
 

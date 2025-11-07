@@ -27,21 +27,21 @@ class MobileAlertsApi:
 
     async def register_device(self, device_id: str) -> None:
         """Register a device and fetch its data immediately.
-        
+
         This is called during async_setup_entry to add a new device and fetch
         its data right away. This ensures data is available as soon as the device
         is registered.
-        
+
         Args:
             device_id: The device ID to register and fetch
-            
+
         Raises:
             ApiError: If fetching device data fails
         """
         if device_id not in self._device_ids:
             self._device_ids.append(device_id)
             _LOGGER.debug("Device %s registered", device_id)
-        
+
         # Fetch this device's data immediately
         await self._fetch_device(device_id)
 
@@ -70,7 +70,7 @@ class MobileAlertsApi:
 
         For regular 10-minute updates, always uses batch mode to fetch all devices
         in a single request.
-        
+
         Individual device fetches happen in register_device() during setup.
 
         Args:
@@ -83,13 +83,13 @@ class MobileAlertsApi:
 
     async def _fetch_device(self, device_id: str) -> None:
         """Fetch data for a single device during setup.
-        
+
         Called from register_device() to fetch the newly registered device's data
         without re-fetching all previously registered devices.
-        
+
         Args:
             device_id: The device ID to fetch
-            
+
         Raises:
             ApiError: If API communication fails
         """
@@ -105,10 +105,7 @@ class MobileAlertsApi:
                 if not self._data:
                     self._data = []
                 # Remove old data for this device if it exists
-                self._data = [
-                    d for d in self._data 
-                    if d.get("deviceid") != device_id
-                ]
+                self._data = [d for d in self._data if d.get("deviceid") != device_id]
                 # Add new data
                 self._data.extend(devices)
                 _LOGGER.debug("Got initial data for device %s", device_id)
@@ -159,16 +156,16 @@ class MobileAlertsApi:
         self, request_payload: dict[str, Any]
     ) -> dict[str, Any] | None:
         """Post a request to the Mobile Alerts API and handle the response.
-        
+
         This is a private helper method to avoid code duplication between
         single device and batch fetches.
-        
+
         Args:
             request_payload: The request payload (deviceids and optional phoneid)
-            
+
         Returns:
             The parsed JSON response, or None if there was an error
-            
+
         Raises:
             ApiError: If API communication fails
         """

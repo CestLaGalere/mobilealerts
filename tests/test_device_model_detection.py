@@ -73,11 +73,11 @@ class TestDeviceModelDetection:
 
     def test_ma10230_room_climate_station_with_h_key(self):
         """Test detection of MA10230 - Room Climate Station with 'h' key.
-        
+
         Real-world case where device sends t1 and h (not h1).
         Device has many additional keys (h3havg, h24havg, h7davg, h30davg)
         which are averages and should be ignored.
-        
+
         Should match MA10230 (t1, h), NOT MA10100 (t1 only).
         This tests the scoring system that prefers models with more matches.
         """
