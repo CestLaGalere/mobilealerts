@@ -25,11 +25,25 @@ class MobileAlertsApi:
         self._device_ids: list[str] = []
         self._data: list[dict[str, Any]] | None = None
 
-    def register_device(self, device_id: str) -> None:
-        """Register a device for data fetching."""
+    async def register_device(self, device_id: str) -> None:
+        """Register a device and fetch its data immediately.
+        
+        This is called during async_setup_entry to add a new device and fetch
+        its data right away. This ensures data is available as soon as the device
+        is registered.
+        
+        Args:
+            device_id: The device ID to register and fetch
+            
+        Raises:
+            ApiError: If fetching device data fails
+        """
         if device_id not in self._device_ids:
             self._device_ids.append(device_id)
             _LOGGER.debug("Device %s registered", device_id)
+        
+        # Fetch this device's data immediately
+        await self._fetch_device(device_id)
 
     def get_reading(self, device_id: str) -> dict[str, Any] | None:
         """Get sensor reading for a specific device.
@@ -51,28 +65,119 @@ class MobileAlertsApi:
         _LOGGER.error("Device %s not found in API response", device_id)
         return None
 
-    async def fetch_data(self) -> None:
+    async def fetch_data(self, is_initial: bool = False) -> None:
         """Fetch latest measurement data from Mobile Alerts API.
+
+        For regular 10-minute updates, always uses batch mode to fetch all devices
+        in a single request.
+        
+        Individual device fetches happen in register_device() during setup.
+
+        Args:
+            is_initial: Currently unused - kept for backward compatibility
 
         Raises:
             ApiError: If API communication fails
         """
+        await self._fetch_batch()
+
+    async def _fetch_device(self, device_id: str) -> None:
+        """Fetch data for a single device during setup.
+        
+        Called from register_device() to fetch the newly registered device's data
+        without re-fetching all previously registered devices.
+        
+        Args:
+            device_id: The device ID to fetch
+            
+        Raises:
+            ApiError: If API communication fails
+        """
+        _LOGGER.debug("Fetching initial data for device %s", device_id)
+        request_payload = {"deviceids": device_id}
+        if self._phone_id and self._phone_id != "ui_devices":
+            request_payload["phoneid"] = self._phone_id
+
+        response_data = await self._post_api_request(request_payload)
+        if response_data:
+            devices = response_data.get("devices", [])
+            if devices:
+                if not self._data:
+                    self._data = []
+                # Remove old data for this device if it exists
+                self._data = [
+                    d for d in self._data 
+                    if d.get("deviceid") != device_id
+                ]
+                # Add new data
+                self._data.extend(devices)
+                _LOGGER.debug("Got initial data for device %s", device_id)
+            else:
+                _LOGGER.warning("No data returned for device %s", device_id)
+
+    async def _fetch_batch(self) -> None:
+        """Fetch all registered devices in a single batch request.
+
+        This is used for regular 10-minute updates to minimize API calls.
+        """
+        _LOGGER.debug("Fetching data from Mobile Alerts API (batch mode)")
+
+        if not self._device_ids:
+            _LOGGER.debug("No devices registered for data fetching")
+            return
+
+        request_payload = {"deviceids": ",".join(self._device_ids)}
+        if self._phone_id and self._phone_id != "ui_devices":
+            request_payload["phoneid"] = self._phone_id
+
+        response_data = await self._post_api_request(request_payload)
+        if response_data:
+            self._data = response_data.get("devices", [])
+            if self._data:
+                _LOGGER.debug(
+                    "Successfully fetched data for %d devices",
+                    len(self._data),
+                )
+                # Log device details for debugging
+                for device in self._data:
+                    device_id = device.get("deviceid")
+                    measurement = device.get("measurement", {})
+                    if measurement:
+                        meas_keys = list(measurement.keys())
+                        _LOGGER.debug(
+                            "Device %s: measurement_keys=%s, data=%s",
+                            device_id,
+                            meas_keys,
+                            measurement,
+                        )
+            else:
+                self._data = None
+        else:
+            self._data = None
+
+    async def _post_api_request(
+        self, request_payload: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Post a request to the Mobile Alerts API and handle the response.
+        
+        This is a private helper method to avoid code duplication between
+        single device and batch fetches.
+        
+        Args:
+            request_payload: The request payload (deviceids and optional phoneid)
+            
+        Returns:
+            The parsed JSON response, or None if there was an error
+            
+        Raises:
+            ApiError: If API communication fails
+        """
+        headers = {"Content-Type": "application/json"}
+        json_data = json.dumps(request_payload)
+
+        _LOGGER.debug("API Request: %s", json_data)
+
         try:
-            _LOGGER.debug("Fetching data from Mobile Alerts API")
-
-            if not self._device_ids:
-                _LOGGER.debug("No devices registered for data fetching")
-                return
-
-            request_payload = {"deviceids": ",".join(self._device_ids)}
-            if self._phone_id:
-                request_payload["phoneid"] = self._phone_id
-
-            headers = {"Content-Type": "application/json"}
-            json_data = json.dumps(request_payload)
-
-            _LOGGER.debug("API Request: %s", json_data)
-
             async with timeout(30):
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(total=30)
@@ -95,35 +200,9 @@ class MobileAlertsApi:
                             error_code = sensor_response.get("errorcode")
                             error_msg = sensor_response.get("errormessage")
                             _LOGGER.error("API error: %s - %s", error_code, error_msg)
-                            self._data = None
-                            return
+                            return None
 
-                        if "devices" not in sensor_response:
-                            _LOGGER.warning(
-                                "API response missing 'devices' key: %s",
-                                sensor_response,
-                            )
-                            self._data = None
-                            return
-
-                        self._data = sensor_response.get("devices", [])
-                        if self._data:
-                            _LOGGER.debug(
-                                "Successfully fetched data for %d devices",
-                                len(self._data),
-                            )
-                            # Log device details for debugging
-                            for device in self._data:
-                                device_id = device.get("deviceid")
-                                measurement = device.get("measurement", {})
-                                if measurement:
-                                    meas_keys = list(measurement.keys())
-                                    _LOGGER.debug(
-                                        "Device %s: measurement_keys=%s, data=%s",
-                                        device_id,
-                                        meas_keys,
-                                        measurement,
-                                    )
+                        return sensor_response
 
         except TimeoutError as err:
             _LOGGER.warning("Timeout connecting to Mobile Alerts API")

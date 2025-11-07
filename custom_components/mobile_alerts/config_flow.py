@@ -10,7 +10,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 
 from .api import ApiError, MobileAlertsApi
-from .const import CONF_TYPE, DOMAIN
+from .const import CONF_PHONE_ID, CONF_MODEL_ID, DOMAIN
 from .device import detect_device_model
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,8 +46,8 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     # Test API call with empty phone_id (uses public test data)
                     _LOGGER.debug("Validating device %s via API", device_id)
                     api = MobileAlertsApi(phone_id="")
-                    api.register_device(device_id)
-                    await api.fetch_data()
+                    # Register device in API (this also fetches its data)
+                    await api.register_device(device_id)
 
                     # Check if device was found in response
                     device_data = api.get_reading(device_id)
@@ -93,14 +93,13 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                     measurement,
                                     device_data,
                                 )
-                                errors["base"] = "device_model_detection_failed"
+                                errors["base"] = "device_not_supported"
                             else:
                                 model_id, model_info = model_result
                                 _LOGGER.info(
-                                    "Device %s identified as %s (%s): %s",
+                                    "Device %s identified as %s: %s",
                                     device_id,
                                     model_id,
-                                    model_info["api_id"],
                                     model_info["display_name"],
                                 )
 
@@ -119,14 +118,50 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                     else model_info["display_name"]
                                 )
 
-                                return self.async_create_entry(
+                                # Create the entry
+                                entry = self.async_create_entry(
                                     title=device_title,
                                     data={
                                         CONF_DEVICE_ID: device_id,
                                         CONF_NAME: device_title,
-                                        CONF_TYPE: model_id,
+                                        CONF_MODEL_ID: model_id,
+                                        CONF_PHONE_ID: "ui_devices",
                                     },
                                 )
+
+                                # Update coordinator with the already-fetched device data
+                                # This prevents entities from being "unavailable" and avoids an extra API call
+                                # which helps respect the rate limit (max 3 req/min/device)
+                                try:
+                                    _LOGGER.debug(
+                                        "Seeding coordinator with device data for %s",
+                                        device_id,
+                                    )
+                                    from .const import DOMAIN
+
+                                    hass = self.hass
+                                    if DOMAIN in hass.data and "coordinators" in hass.data[DOMAIN]:
+                                        coordinators = hass.data[DOMAIN]["coordinators"]
+                                        phone_id = "ui_devices"
+                                        if phone_id in coordinators:
+                                            coordinator = coordinators[phone_id]
+                                            # Directly seed the coordinator with the data we already fetched
+                                            # This avoids another API call and respects rate limits
+                                            if device_data:
+                                                coordinator._api._data = [device_data]
+                                                _LOGGER.debug(
+                                                    "Coordinator seeded with device data for %s",
+                                                    device_id,
+                                                )
+                                except Exception as err:  # noqa: BLE001
+                                    _LOGGER.warning(
+                                        "Could not seed coordinator with device data for %s: %s. "
+                                        "Data will be available after the next scheduled update.",
+                                        device_id,
+                                        err,
+                                    )
+
+                                return entry
 
                 except ApiError as err:
                     _LOGGER.error("API error validating device %s: %s", device_id, err)

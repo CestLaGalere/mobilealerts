@@ -15,6 +15,7 @@
       "invalid_device_id_format": "Geräte-ID muss 12 Zeichen lang sein",
       "device_not_found": "Gerät nicht gefunden",
       "device_offline_no_data": "Gerät ist offline oder hat noch keine Daten gesendet",
+      "device_not_supported": "Gerät wird noch nicht unterstützt. Bitte öffnen Sie ein Issue auf GitHub und fügen Sie die vollständige Protokollausgabe hinzu.",
       "sensor_type_detection_failed": "Sensortyp konnte nicht erkannt werden",
       "api_error": "API-Fehler bei der Validierung",
       "unknown_error": "Ein unerwarteter Fehler ist aufgetreten"
@@ -42,6 +43,12 @@
       },
       "wind_gust": {
         "name": "Windböen"
+      },
+      "wind_direction": {
+        "name": "Windrichtung"
+      },
+      "wind_direction_degrees": {
+        "name": "Windrichtung (Grad)"
       },
       "pressure": {
         "name": "Luftdruck"

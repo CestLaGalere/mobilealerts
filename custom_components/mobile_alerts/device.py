@@ -50,7 +50,7 @@ DEVICE_MODELS: Final = {
     "MA10230": {
         "name": "MA 10230",
         "display_name": "Wireless Room Climate Station",
-        "measurement_keys": {"t1", "h1"},
+        "measurement_keys": {"t1", "h"},
         "description": "Temperature and humidity",
     },
     "MA10238": {
@@ -298,15 +298,53 @@ def detect_device_model(
     if not keys:
         return None
 
+    _LOGGER.debug("Detected measurement keys (after cleanup): %s", keys)
+
     # Try exact match first (most accurate)
     for model_id, model_info in DEVICE_MODELS.items():
         if keys == model_info["measurement_keys"]:
+            _LOGGER.debug(
+                "Exact match found for model %s with measurement_keys: %s",
+                model_id,
+                keys,
+            )
             return (model_id, model_info)
 
     # Try subset match (device has at least these keys)
+    # Use scoring to prefer models with more matching keys
+    best_match = None
+    best_score = 0
+    
     for model_id, model_info in DEVICE_MODELS.items():
         if model_info["measurement_keys"].issubset(keys):
-            return (model_id, model_info)
+            # Score = number of model keys that match
+            # This prefers models with more required keys
+            score = len(model_info["measurement_keys"])
+            
+            if score > best_score:
+                best_score = score
+                best_match = (model_id, model_info)
+                _LOGGER.debug(
+                    "Better subset match found for model %s (score=%d). "
+                    "Model keys: %s, Actual keys: %s",
+                    model_id,
+                    score,
+                    model_info["measurement_keys"],
+                    keys,
+                )
+            else:
+                _LOGGER.debug(
+                    "Subset match rejected for model %s (score=%d <= current_best=%d). "
+                    "Model keys: %s, Actual keys: %s",
+                    model_id,
+                    score,
+                    best_score,
+                    model_info["measurement_keys"],
+                    keys,
+                )
+    
+    if best_match:
+        return best_match
 
     # Unknown device
     _LOGGER.warning(

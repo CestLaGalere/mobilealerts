@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Adicionar dispositivo Mobile Alerts",
-        "description": "{info}",
+        "description": "Digite o ID do dispositivo. Exemplo: 090005AC99E2\n\n{migration_info}",
         "data": {
           "device_id": "ID do dispositivo",
           "name": "Nome (opcional)"
@@ -15,6 +15,7 @@
       "invalid_device_id_format": "O ID do dispositivo deve ter 12 caracteres",
       "device_not_found": "Dispositivo não encontrado",
       "device_offline_no_data": "O dispositivo está offline ou ainda não enviou dados",
+      "device_not_supported": "Dispositivo ainda não suportado. Por favor, abra um problema no GitHub e inclua a saída completa do log.",
       "sensor_type_detection_failed": "Não foi possível detectar o tipo de sensor",
       "api_error": "Erro de API durante a validação",
       "unknown_error": "Ocorreu um erro inesperado"
@@ -42,6 +43,12 @@
       },
       "wind_gust": {
         "name": "Rajadas de vento"
+      },
+      "wind_direction": {
+        "name": "Direção do vento"
+      },
+      "wind_direction_degrees": {
+        "name": "Direção do vento (Graus)"
       },
       "pressure": {
         "name": "Pressão atmosférica"

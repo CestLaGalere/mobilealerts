@@ -1,7 +1,20 @@
 """Constants for Mobile Alerts integration."""
 
 import logging
+from dataclasses import dataclass
 from typing import Any
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorStateClass,
+)
+from homeassistant.const import (
+    UnitOfTemperature,
+    PERCENTAGE,
+    UnitOfLength,
+    UnitOfPressure,
+    UnitOfSpeed,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -11,6 +24,7 @@ DOMAIN = "mobile_alerts"
 CONF_DEVICES = "devices"
 CONF_PHONE_ID = "phone_id"
 CONF_TYPE = "type"
+CONF_MODEL_ID = "model_id"  # Device model ID (e.g., "MA10300") for config entries
 
 ATTRIBUTION = "Data from MobileAlerts"
 

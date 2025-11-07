@@ -71,6 +71,35 @@ class TestDeviceModelDetection:
         assert model_id == "MA10238"
         assert model_info["measurement_keys"] == {"t1", "h1", "ap"}
 
+    def test_ma10230_room_climate_station_with_h_key(self):
+        """Test detection of MA10230 - Room Climate Station with 'h' key.
+        
+        Real-world case where device sends t1 and h (not h1).
+        Device has many additional keys (h3havg, h24havg, h7davg, h30davg)
+        which are averages and should be ignored.
+        
+        Should match MA10230 (t1, h), NOT MA10100 (t1 only).
+        This tests the scoring system that prefers models with more matches.
+        """
+        measurement = {
+            "idx": 239621,
+            "ts": 1742682553,
+            "c": 1742682558,
+            "lb": True,
+            "t1": 19.7,
+            "h": 36.0,
+            "h3havg": 36.0,
+            "h24havg": 37.0,
+            "h7davg": 35.0,
+            "h30davg": 40.0,
+        }
+        result = detect_device_model(measurement)
+        assert result is not None
+        model_id, model_info = result
+        # Should match MA10230 (t1, h), not MA10100 (t1 only)
+        assert model_id == "MA10230", f"Expected MA10230 but got {model_id}"
+        assert model_info["measurement_keys"] == {"t1", "h"}
+
     def test_ma10300_thermo_hygro_with_cable(self):
         """Test detection of MA10300/MA10320 - Thermo-Hygrometer with cable."""
         measurement = {

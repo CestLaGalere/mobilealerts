@@ -28,7 +28,7 @@ Restart your Home Assistant to complete the installation.
 
 ### 🆕 UI-based Configuration (Recommended)
 
-The new version uses Home Assistant's UI for configuration instead of YAML.
+The new version (from v1.4.0) uses Home Assistant's UI for configuration instead of YAML.
 
 #### Step 1: Add the Integration
 

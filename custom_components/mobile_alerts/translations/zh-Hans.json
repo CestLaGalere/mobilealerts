@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "添加 Mobile Alerts 设备",
-        "description": "{info}",
+        "description": "输入设备 ID。示例：090005AC99E2\n\n{migration_info}",
         "data": {
           "device_id": "设备 ID",
           "name": "名称（可选）"
@@ -15,6 +15,7 @@
       "invalid_device_id_format": "设备 ID 必须为 12 个字符",
       "device_not_found": "未找到设备",
       "device_offline_no_data": "设备离线或尚未发送任何数据",
+      "device_not_supported": "设备尚不支持。请在 GitHub 上打开 Issue 并包含完整的日志输出。",
       "sensor_type_detection_failed": "无法检测到传感器类型",
       "api_error": "验证期间出现 API 错误",
       "unknown_error": "发生意外错误"
@@ -42,6 +43,12 @@
       },
       "wind_gust": {
         "name": "风阵"
+      },
+      "wind_direction": {
+        "name": "风向"
+      },
+      "wind_direction_degrees": {
+        "name": "风向（度数）"
       },
       "pressure": {
         "name": "气压"

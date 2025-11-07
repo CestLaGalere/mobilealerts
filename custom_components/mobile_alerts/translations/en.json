@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Add Mobile Alerts Device",
-        "description": "{info}",
+        "description": "Enter the device ID. Example: 090005AC99E2\n\n{migration_info}",
         "data": {
           "device_id": "Device ID",
           "name": "Name (optional)"
@@ -42,6 +42,12 @@
       },
       "wind_gust": {
         "name": "Wind Gust"
+      },
+      "wind_direction": {
+        "name": "Wind Direction"
+      },
+      "wind_direction_degrees": {
+        "name": "Wind Direction (Degrees)"
       },
       "pressure": {
         "name": "Air Pressure"

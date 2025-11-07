@@ -252,9 +252,11 @@ async def test_mobile_alerts_api_initialization():
     assert api._phone_id == "123456"
     assert len(api._device_ids) == 0
 
-    # Register devices
-    api.register_device("ABC123")
-    api.register_device("DEF456")
+    # Register devices (directly, for unit test)
+    if "ABC123" not in api._device_ids:
+        api._device_ids.append("ABC123")
+    if "DEF456" not in api._device_ids:
+        api._device_ids.append("DEF456")
 
     assert len(api._device_ids) == 2
     assert "ABC123" in api._device_ids
