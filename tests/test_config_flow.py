@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, patch
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME
 
 from custom_components.mobile_alerts.config_flow import MobileAlertsConfigFlow
-from custom_components.mobile_alerts.const import CONF_TYPE
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 

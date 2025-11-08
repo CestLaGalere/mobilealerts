@@ -36,7 +36,11 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
-    """Base implementation of a Mobile Alerts sensor."""
+    """Base implementation of a Mobile Alerts sensor.
+
+    Template Method Pattern: extract_reading() is called during __init__ and may be
+    overridden by subclasses to implement custom data extraction logic.
+    """
 
     coordinator: MobileAlertsCoordinator
 
@@ -116,7 +120,12 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
         self.async_write_ha_state()
 
     def extract_reading(self) -> None:
-        """Extract sensor value from coordinator."""
+        """Extract sensor value from coordinator.
+
+        This method may be overridden by subclasses to implement custom
+        extraction logic for specific sensor types (e.g., MobileAlertsWaterSensor,
+        MobileAlertsLastSeenSensor, MobileAlertsWindDirectionDegreesSensor).
+        """
         data = self.coordinator.get_reading(self._device_id)
         self._attr_extra_state_attributes = data if data is not None else {}
         self._attr_native_value = None
