@@ -11,7 +11,7 @@ from homeassistant.helpers import config_validation as cv
 
 from .api import ApiError, MobileAlertsApi
 from .const import CONF_PHONE_ID, CONF_MODEL_ID, DOMAIN
-from .device import detect_device_model
+from .device import detect_device_model, find_all_matching_models
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,6 +25,9 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self._detected_type: Optional[str] = None
         self._device_data: Optional[dict[str, Any]] = None
+        self._device_id: Optional[str] = None
+        self._device_name: Optional[str] = None
+        self._candidates: list[tuple[str, dict[str, Any]]] = []
 
     async def async_step_user(
         self, user_input: Optional[dict[str, Any]] = None
@@ -96,6 +99,25 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 errors["base"] = "device_not_supported"
                             else:
                                 model_id, model_info = model_result
+
+                                # Check for ambiguous devices (multiple models with same measurement_keys)
+                                all_matches = find_all_matching_models(measurement)
+
+                                if len(all_matches) > 1:
+                                    # Multiple models match - ask user which one
+                                    _LOGGER.info(
+                                        "Device %s ambiguous - multiple models match: %s",
+                                        device_id,
+                                        [m_id for m_id, _ in all_matches],
+                                    )
+                                    # Store data for step2
+                                    self._device_data = device_data
+                                    self._device_id = device_id
+                                    self._device_name = device_name
+                                    self._candidates = all_matches
+                                    return await self.async_step_select_model()
+
+                                # Single match - proceed normally
                                 _LOGGER.info(
                                     "Device %s identified as %s: %s",
                                     device_id,
@@ -194,6 +216,108 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "angezeigt. Danach können Sie die alten Mobile Alerts Einträge aus "
                     "configuration.yaml entfernen."
                 ),
+            },
+        )
+
+    async def async_step_select_model(
+        self, user_input: Optional[dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle model selection for ambiguous devices.
+
+        Some devices have identical measurement keys but different meanings for keys.
+        Example: MA10300 and MA10350 both report {t1, t2, h}
+        - MA10300: t2 = cable temperature
+        - MA10350: t2 = water level
+        """
+        if user_input is not None:
+            model_id = user_input.get("model_id")
+
+            # Find the selected model info from candidates
+            model_info = None
+            if self._candidates:
+                for cand_id, cand_info in self._candidates:
+                    if cand_id == model_id:
+                        model_info = cand_info
+                        break
+
+            if not model_info:
+                _LOGGER.error("Selected model %s not found in candidates", model_id)
+                return self.async_abort(reason="device_not_supported")
+
+            device_id = self._device_id
+            device_name = self._device_name or ""
+
+            _LOGGER.info(
+                "User selected model %s for device %s",
+                model_id,
+                device_id,
+            )
+
+            # Check if this device already exists
+            await self.async_set_unique_id(device_id)
+            self._abort_if_unique_id_configured()
+
+            # Create the entry
+            device_title = device_name if device_name else model_info["display_name"]
+
+            entry = self.async_create_entry(
+                title=device_title,
+                data={
+                    CONF_DEVICE_ID: device_id,
+                    CONF_NAME: device_title,
+                    CONF_MODEL_ID: model_id,
+                    CONF_PHONE_ID: "ui_devices",
+                },
+            )
+
+            # Update coordinator with the already-fetched device data
+            try:
+                _LOGGER.debug(
+                    "Seeding coordinator with device data for %s",
+                    device_id,
+                )
+                from .const import DOMAIN
+
+                hass = self.hass
+                if DOMAIN in hass.data and "coordinators" in hass.data[DOMAIN]:
+                    coordinators = hass.data[DOMAIN]["coordinators"]
+                    phone_id = "ui_devices"
+                    if phone_id in coordinators:
+                        coordinator = coordinators[phone_id]
+                        if self._device_data:
+                            coordinator.data[device_id] = self._device_data
+                            _LOGGER.debug(
+                                "Updated coordinator data for device %s",
+                                device_id,
+                            )
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning(
+                    "Failed to seed coordinator: %s (non-critical)",
+                    err,
+                )
+
+            return entry
+
+        # Show model selection form
+        if not self._candidates:
+            return self.async_abort(reason="device_not_supported")
+
+        # Create human-readable choices from DEVICE_MODELS
+        # Format: {model_id: "MA10300 - Wireless Thermo-Hygrometer with Cable Sensor"}
+        model_choices = {
+            model_id: f"{model_info['name']} - {model_info['display_name']}"
+            for model_id, model_info in self._candidates
+        }
+
+        return self.async_show_form(
+            step_id="select_model",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("model_id"): vol.In(model_choices),
+                }
+            ),
+            description_placeholders={
+                "device_id": self._device_id or "unknown",
             },
         )
 

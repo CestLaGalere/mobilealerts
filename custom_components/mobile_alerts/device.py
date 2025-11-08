@@ -10,12 +10,11 @@ from .const import DOMAIN
 
 _LOGGER: Final = logging.getLogger(__name__)
 
-
 # Device model mapping based on mobile-alerts.eu website and API documentation
 # Maps model identifiers to device specifications
 # Measurement keys reference:
 # - t1: Internal temperature, t2: Cable/external temperature
-# - h1: Humidity
+# - h: Humidity (standard), h1: Humidity (alternative)
 # - ap: Air pressure
 # - r: Rainfall, rf: Rain flip counter
 # - ws: Wind speed, wg: Wind gust, wd: Wind direction
@@ -44,13 +43,13 @@ DEVICE_MODELS: Final = {
     "MA10200": {
         "name": "MA 10200",
         "display_name": "Wireless Thermo-Hygrometer",
-        "measurement_keys": {"t1", "h1"},
+        "measurement_keys": {"t1", "h"},
         "description": "Temperature and humidity",
     },
     "MA10230": {
         "name": "MA 10230",
         "display_name": "Wireless Room Climate Station",
-        "measurement_keys": {"t1", "h"},
+        "measurement_keys": {"t1", "h", "h3havg", "h24havg", "h7davg", "h30davg"},
         "description": "Temperature and humidity",
     },
     "MA10238": {
@@ -62,20 +61,24 @@ DEVICE_MODELS: Final = {
     "MA10241": {
         "name": "MA 10241",
         "display_name": "Wireless Thermo-Hygrometer",
-        "measurement_keys": {"t1", "h1"},
+        "measurement_keys": {"t1", "h"},
         "description": "Temperature and humidity",
     },
     "MA10300": {
         "name": "MA 10300 / MA 10320",
         "display_name": "Wireless Thermo-Hygrometer with Cable Sensor",
-        "measurement_keys": {"t1", "t2", "h1"},
+        "measurement_keys": {"t1", "t2", "h"},
         "description": "Temperature (internal/cable) and humidity",
     },
     "MA10350": {
         "name": "MA 10350",
         "display_name": "Wireless Thermo-Hygrometer with Water Detector",
-        "measurement_keys": {"t1", "h1", "t2"},
-        "description": "Temperature, humidity, and water detection (t2 indicates water presence)",
+        "measurement_keys": {
+            "t1",
+            "t2",
+            "h",
+        },  # t2 = water level (NOT cable temperature like MA10300)
+        "description": "Temperature, humidity, and water detection",
     },
     "MA10450": {
         "name": "MA 10450",
@@ -86,7 +89,7 @@ DEVICE_MODELS: Final = {
     "MA10650": {
         "name": "MA 10650",
         "display_name": "Wireless Rain Gauge",
-        "measurement_keys": {"r", "rf"},
+        "measurement_keys": {"t1", "r", "rf"},
         "description": "Rainfall measurement and flip counter",
     },
     "MA10660": {
@@ -126,134 +129,6 @@ DEVICE_MODELS: Final = {
 }
 
 
-def detect_device_type(measurement: dict[str, Any]) -> str:
-    """Detect device type from measurement data.
-
-    Based on the combination of available measurement keys,
-    determine which device type this is.
-
-    Args:
-        measurement: The measurement dict from API response
-
-    Returns:
-        Device type string (e.g., "t1", "h", "ws") or empty string if unknown
-    """
-    if not measurement:
-        return ""
-
-    # Get available measurement keys
-    keys = set(measurement.keys())
-    # Remove meta keys that don't indicate device type
-    keys.discard("idx")
-    keys.discard("ts")
-    keys.discard("c")
-    keys.discard("lb")
-
-    # Remove alert flag keys (end with "hi", "lo", "hise", "lose", "hiee", "loee", etc.)
-    keys = {
-        k
-        for k in keys
-        if not any(
-            k.endswith(suffix)
-            for suffix in [
-                "hi",
-                "lo",
-                "hise",
-                "lose",
-                "hiee",
-                "loee",
-                "his",
-                "los",
-                "hise",
-                "lose",
-                "hiee",
-                "loee",
-                "aactive",
-                "as",
-                "active",
-                "st",
-            ]
-        )
-    }
-
-    # Store cleaned keys for logging unknown devices
-    original_keys = keys.copy()
-
-    # Map measurement combinations to device types
-    # Sorted by specificity (most specific first)
-
-    # ID11: t1-t4, h1-h4 (Multi-Sensor 4x Temp, 4x Hum)
-    if all(k in keys for k in ["t1", "t2", "t3", "t4", "h1", "h2", "h3", "h4"]):
-        return "t1"  # Multi-sensor, use t1 as primary
-
-    # ID15: kp1t-kp4t, kp1c-kp4c, sc (Funkschalter)
-    if any(k in keys for k in ["kp1t", "kp2t", "kp3t", "kp4t"]):
-        return "sc"  # Funk switch
-
-    # ID12: t1, h, h3havg, h24havg, h7davg, h30davg (Thermo/Hygro with Averages)
-    if all(k in keys for k in ["t1", "h"]) and any(
-        k in keys for k in ["h3havg", "h24havg"]
-    ):
-        return "h"  # Hygro with averages
-
-    # ID07: t1, t2, h, h2 (Dual Thermo/Hygro)
-    if all(k in keys for k in ["t1", "t2", "h", "h2"]):
-        return "h2"  # External humidity
-
-    # ID05: t1, t2, h, ppm (Thermo/Hygro with Air Quality)
-    if all(k in keys for k in ["t1", "t2", "h", "ppm"]):
-        return "ppm"  # Air quality
-
-    # ID08: r or rf (Rain Gauge) - check before other types
-    if "r" in keys or "rf" in keys:
-        return "r"  # Rain
-
-    # ID0B: ws, wg, wd (Wind Sensor)
-    if any(k in keys for k in ["ws", "wg", "wd"]):
-        return "ws"  # Wind
-
-    # ID10: w (Window/Door Sensor)
-    if "w" in keys and len(keys) == 1:
-        return "w"  # Window
-
-    # ID18: t1, h, ap (Thermo/Hygro/Barometer)
-    if all(k in keys for k in ["t1", "h", "ap"]):
-        return "ap"  # Air pressure
-
-    # ID0A: t1, a1-a4 (Thermometer with Smoke Detectors)
-    if "t1" in keys and any(k in keys for k in ["a1", "a2", "a3", "a4"]):
-        return "t1"  # Smoke detector
-
-    # ID01, ID04, ID06, ID09, ID0F: t1, t2, h (Thermo with Cable Sensor)
-    if all(k in keys for k in ["t1", "t2"]) and "h" in keys:
-        return "t2"  # Cable temperature
-
-    # ID01, ID0F: t1, t2 (Thermo with Cable Sensor, no humidity)
-    if all(k in keys for k in ["t1", "t2"]) and "h" not in keys:
-        return "t2"  # Cable temperature
-
-    # ID17: t1, t2 (AC Control - but same as cable sensor)
-    # This is ambiguous, return t2 (same as cable sensor)
-    if all(k in keys for k in ["t1", "t2"]):
-        return "t2"  # Cable temperature
-
-    # ID03, ID04, ID06, ID09, ID0E, ID18: t1, h (Thermo/Hygro)
-    if all(k in keys for k in ["t1", "h"]):
-        return "h"  # Humidity
-
-    # ID02, ID0A, ID20: t1 only (Thermometer)
-    if keys == {"t1"}:
-        return "t1"  # Temperature
-
-    # Unknown device type - log raw data for debugging
-    _LOGGER.warning(
-        "Could not detect Mobile Alerts device type. Raw measurement keys: %s. "
-        "This might be a new device type. Please report this with the full log output.",
-        original_keys,
-    )
-    return ""
-
-
 def detect_device_model(
     measurement: dict[str, Any] | None,
 ) -> tuple[str, dict[str, Any]] | None:
@@ -265,6 +140,9 @@ def detect_device_model(
     Returns:
         Tuple of (model_id, model_info) or None if unknown
         Example: ("MA10300", {"api_id": "ID06", "name": "MA 10300", ...})
+
+    Note: Returns only ONE result even if multiple models have identical measurement_keys.
+    The config_flow will handle disambiguation if needed.
     """
     if not measurement:
         return None
@@ -301,6 +179,7 @@ def detect_device_model(
     _LOGGER.debug("Detected measurement keys (after cleanup): %s", keys)
 
     # Try exact match first (most accurate)
+    exact_matches = []
     for model_id, model_info in DEVICE_MODELS.items():
         if keys == model_info["measurement_keys"]:
             _LOGGER.debug(
@@ -308,7 +187,12 @@ def detect_device_model(
                 model_id,
                 keys,
             )
-            return (model_id, model_info)
+            exact_matches.append((model_id, model_info))
+
+    # If we have exact matches, return first one
+    # (config_flow will detect multiple matches via separate function)
+    if exact_matches:
+        return exact_matches[0]
 
     # Try subset match (device has at least these keys)
     # Use scoring to prefer models with more matching keys
@@ -352,6 +236,110 @@ def detect_device_model(
         "Please report this with the full log output.",
         keys,
     )
+    return None
+
+
+def find_all_matching_models(
+    measurement: dict[str, Any] | None,
+) -> list[tuple[str, dict[str, Any]]]:
+    """Find ALL device models that match the given measurement data.
+
+    Used by config_flow to detect ambiguous devices (e.g., MA10300 vs MA10350).
+    Both have identical measurement_keys but t2 means different things.
+
+    Args:
+        measurement: The measurement dict from API response or None
+
+    Returns:
+        List of (model_id, model_info) tuples that have exact measurement_key match
+    """
+    if not measurement:
+        return []
+
+    # Get available measurement keys
+    keys = set(measurement.keys())
+
+    # Remove metadata keys
+    keys.discard("idx")
+    keys.discard("ts")
+    keys.discard("c")
+    keys.discard("lb")
+
+    # Remove alert flag keys
+    alert_suffixes = [
+        "hi",
+        "lo",
+        "hise",
+        "lose",
+        "hiee",
+        "loee",
+        "his",
+        "los",
+        "aactive",
+        "as",
+        "active",
+        "st",
+    ]
+    keys = {k for k in keys if not any(k.endswith(suffix) for suffix in alert_suffixes)}
+
+    if not keys:
+        return []
+
+    # Find all models with exact measurement_key match
+    matches = []
+    for model_id, model_info in DEVICE_MODELS.items():
+        if keys == model_info["measurement_keys"]:
+            matches.append((model_id, model_info))
+            _LOGGER.debug(
+                "Model %s matches measurement_keys: %s",
+                model_id,
+                keys,
+            )
+
+    if matches:
+        _LOGGER.debug(
+            "Found %d model(s) matching measurement_keys %s: %s",
+            len(matches),
+            keys,
+            [model_id for model_id, _ in matches],
+        )
+
+    return matches
+
+
+def get_sensor_type_override(model_id: str, measurement_key: str) -> str | None:
+    """Get sensor type override for model-specific measurement key handling.
+
+    Some measurement keys have different meanings across models:
+    - MA10300: t2 = cable temperature (TemperatureSensor)
+    - MA10350: t2 = water level (WaterSensor)
+
+    This returns the sensor type to use, overriding MEASUREMENT_TYPE_MAP.
+
+    Args:
+        model_id: Device model ID (e.g., "MA10350")
+        measurement_key: The API measurement key (e.g., "t2")
+
+    Returns:
+        Sensor type string for MEASUREMENT_TYPE_MAP lookup, or None for default
+    """
+    # Model-specific overrides: return the sensor type to use
+    overrides = {
+        ("MA10350", "t2"): "water",  # MA10350: t2 is water level, not temperature
+    }
+
+    override_key = (model_id, measurement_key)
+    if override_key in overrides:
+        sensor_type = overrides[override_key]
+        _LOGGER.debug(
+            "Model %s: measurement key '%s' uses sensor type '%s' (override)",
+            model_id,
+            measurement_key,
+            sensor_type,
+        )
+        return sensor_type
+
+    # No override - use measurement_key as sensor type (default behavior)
     return None
 
 

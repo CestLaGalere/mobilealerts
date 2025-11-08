@@ -2,7 +2,24 @@
 
 [Back](./README.md)
 
-## v1.3.0 (Jul 7 2025)
+## v1.4.0 (Nov 7 2025)
+
+- **feat**: Add a device via UI on page Settings -> Device & services -> Integrations -> mobile Alerts, Current YAML configuration still works in parallel, information for migration in readme
+- **feat**: The entity types and device models are regognized during setup automatically or when similar sensor types user is asked which device he adds (list of potential devices).
+- **feat**: Bundle all Entities of a physical device into a device on HA (issue [#35](https://github.com/CestLaGalere/mobilealerts/issues/35))
+- **feat**: Added entities battery status and last seen timestamp for each device (issue [#19](https://github.com/CestLaGalere/mobilealerts/issues/19))
+- **feat**: Added water sensor for MA 10350 (must be confirmed by issue owner) [#5](https://github.com/CestLaGalere/mobilealerts/issues/5)
+- **feat**: Multi language support. All labes are translated in de, es, fr, pt, zh-Hans
+
+For developers:
+
+- **chore**: Large sensor.py file splittet in smaler files (sensor, coordinator, sensor_classes, ap)
+- **chore**: Warning Log for unknown new device types with API result for better issue support
+- **feat**: .devcontainer folder with short readme. HA developing is based on dev containers (VS Code remote exension WSL or SSH). More info on [HA Documentation](https://developers.home-assistant.io/docs/setup_devcontainer_environment/)
+- **feat**: Unit tests (pytest) for sensors, api, config_flow
+- **feat**: New Mock-API server with all Device Types MA10xxx as json string. This allows 1:1 testting in browser with HA installed in dev container. (see [Document MANUAL_TESTING.md](tests/MANUAL_TESTING.md))
+
+## v1.3.0 (Jul 7 2025)
 
 - **feat**: use `async_refresh` instead of `async_config_entry_first_refresh` during setup_platform HA 2025.11 compliance #31
 - **fix**: HA Core warnings
@@ -11,8 +28,7 @@
 - **fix**: clean up or deprecations, typings, warnings, formating from HA Core
 - **chore**: better changelog
 
-
-## v1.3.0-beta1 (Jun 14 2025)
+## v1.3.0-beta1 (Jun 14 2025)
 
 - **feat**: use `async_refresh` instead of `async_config_entry_first_refresh` during setup_platform HA 2025.11 compliance #31
 - **fix**: HA Core warnings
@@ -21,7 +37,7 @@
 - **fix**: clean up or deprecations, typings, warnings, formating from HA Core
 - **chore**: better changelog
 
-## v1.2.3 (Aug 22 2024)
+## v1.2.3 (Aug 22 2024)
 
 - **fix**: HA 2025.5 compliance #28 #26
 
@@ -34,20 +50,20 @@
 - **fix**: Sensor `_attr_native_value` type casting #15
 - **fix**: upgrade deprecated `LENGTH_MILLIMETERS` to `UnitOfLength.MILLIMETERS` #14
 
-## v1.2.0 (Dec 11 2023)
+## v1.2.0 (Dec 11 2023)
 
 - **fix**: add allowed ranges for humidity and temperature #8
 - **feat**: binary sensor MobileAlertsWaterSensor #5
 
-## v1.2.0-beta1 (Jun 16 2023)
+## v1.2.0-beta1 (Jun 16 2023)
 
 - **feat**: binary sensor MobileAlertsWaterSensor #5
 
-## v1.1.1 (16 Jun 2023)
+## v1.1.1 (16 Jun 2023)
 
 - MobileAlertsRainSensor SensorDeviceClass changed to PRECIPITATION
 
-## v1.1.0 (9 Jun 2023)
+## v1.1.0 (9 Jun 2023)
 
 - Domain change - BREAKING CHANGE, change mobilealerts in config yaml to mobile_alerts
 - Temperature and Rain Sensor classes created
@@ -57,7 +73,7 @@
 - native HA attributes and properties - no need to override lot - just write to correct properties
 - docs improvement
 
-## v1.x (18 Jan 23)
+## v1.x (18 Jan 23)
 
 - now calls the mobile alerts api rather than scraping the web page
 - Breaking The type is now the key defined in the mobile alerts api

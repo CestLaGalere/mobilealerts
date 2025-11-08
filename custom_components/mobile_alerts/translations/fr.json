@@ -8,6 +8,13 @@
           "device_id": "ID de l'appareil",
           "name": "Nom (optionnel)"
         }
+      },
+      "select_model": {
+        "title": "Sélectionner le modèle d'appareil",
+        "description": "L'ID de l'appareil ne peut pas être identifié de manière unique car plusieurs modèles ont les mêmes capteurs.\n\nID de l'appareil: {device_id}\n\nVeuillez sélectionner votre type d'appareil:",
+        "data": {
+          "model": "Quel appareil avez-vous?"
+        }
       }
     },
     "error": {

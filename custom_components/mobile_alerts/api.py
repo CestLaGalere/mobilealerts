@@ -3,6 +3,7 @@
 from asyncio import timeout
 import json
 import logging
+import os
 from typing import Any, Final
 
 import aiohttp
@@ -17,7 +18,11 @@ class ApiError(Exception):
 class MobileAlertsApi:
     """Interact with Mobile Alerts API."""
 
-    API_URL = "https://www.data199.com/api/pv1/device/lastmeasurement"
+    # Allow overriding API URL via environment variable (for testing)
+    API_URL = os.getenv(
+        "MOBILE_ALERTS_API_URL",
+        "https://www.data199.com/api/pv1/device/lastmeasurement",
+    )
 
     def __init__(self, phone_id: str) -> None:
         """Initialize the API client."""

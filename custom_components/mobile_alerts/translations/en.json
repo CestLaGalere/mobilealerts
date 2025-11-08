@@ -8,6 +8,13 @@
           "device_id": "Device ID",
           "name": "Name (optional)"
         }
+      },
+      "select_model": {
+        "title": "Select Device Model",
+        "description": "The device ID cannot be uniquely identified because multiple models have the same sensors.\n\nDevice ID: {device_id}\n\nPlease select your device type:",
+        "data": {
+          "model_id": "Which device do you have?"
+        }
       }
     },
     "error": {

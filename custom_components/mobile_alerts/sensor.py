@@ -25,9 +25,10 @@ from .const import (
     SCAN_INTERVAL_MINUTES,
 )
 from .coordinator import MobileAlertsCoordinator
-from .device import DEVICE_MODELS
+from .device import DEVICE_MODELS, get_sensor_type_override
 from .sensor_classes import (
     MobileAlertsBatterySensor,
+    MobileAlertsContactSensor,
     MobileAlertsHumiditySensor,
     MobileAlertsLastSeenSensor,
     MobileAlertsRainSensor,
@@ -78,7 +79,8 @@ MEASUREMENT_TYPE_MAP = {
     "wg": MobileAlertsWindGustSensor,
     "wd": MobileAlertsWindDirectionSensor,
     "wd_degrees": MobileAlertsWindDirectionDegreesSensor,
-    "w": MobileAlertsWaterSensor,
+    "w": MobileAlertsContactSensor,  # Window/door contact sensor (Boolean True/False)
+    "water": MobileAlertsWaterSensor,  # Water sensor (MA10350)
     # Generic sensor class for unmapped types (will use default parent class behavior)
     # This includes key press sensors from MA 10880 Wireless Switch
     "ap": MobileAlertsSensor,  # Air Pressure
@@ -377,27 +379,47 @@ async def async_setup_entry(
 
         # Create entities for each measurement key in the device model
         for measurement_key in measurement_keys:
+            # For some models, the same API key has different meanings
+            # E.g., MA10350: t2 = water level (not temperature like MA10300)
+            # Check if this model has a sensor type override for this key
+            sensor_type_override = get_sensor_type_override(model_id, measurement_key)
+            sensor_type = (
+                sensor_type_override if sensor_type_override else measurement_key
+            )
+
             _LOGGER.debug(
-                "Processing measurement_key %s for device %s",
+                "Processing measurement_key %s for device %s (model %s, sensor_type %s)",
                 measurement_key,
                 device_id,
+                model_id,
+                sensor_type,
             )
             device_config = {
                 CONF_DEVICE_ID: device_id,
                 CONF_NAME: device_name,
-                CONF_TYPE: measurement_key,
+                CONF_TYPE: sensor_type,  # Store sensor type (may be overridden, e.g., "water" for MA10350 t2)
             }
 
-            if measurement_key in MEASUREMENT_TYPE_MAP:
-                sensor_class = MEASUREMENT_TYPE_MAP[measurement_key]
+            _LOGGER.debug(
+                "Created device_config for sensor_type %s: CONF_TYPE=%s",
+                sensor_type,
+                device_config.get(CONF_TYPE),
+            )
+
+            if sensor_type in MEASUREMENT_TYPE_MAP:
+                sensor_class = MEASUREMENT_TYPE_MAP[sensor_type]
                 entities.append(sensor_class(coordinator, device_config, device_info))
                 _LOGGER.debug(
-                    "Created sensor from model %s: %s", model_id, measurement_key
+                    "Created sensor from model %s: %s (API key: %s)",
+                    model_id,
+                    sensor_type,
+                    measurement_key,
                 )
             else:
                 _LOGGER.debug(
-                    "Skipping measurement_key %s - not in MEASUREMENT_TYPE_MAP",
+                    "Skipping measurement_key %s - sensor_type %s not in MEASUREMENT_TYPE_MAP",
                     measurement_key,
+                    sensor_type,
                 )
 
         # Special case: Wind direction has two sensors (text + degrees)

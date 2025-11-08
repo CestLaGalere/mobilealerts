@@ -8,6 +8,13 @@
           "device_id": "ID do dispositivo",
           "name": "Nome (opcional)"
         }
+      },
+      "select_model": {
+        "title": "Selecionar modelo do dispositivo",
+        "description": "O ID do dispositivo não pode ser identificado de forma única porque vários modelos têm os mesmos sensores.\n\nID do dispositivo: {device_id}\n\nPor favor, selecione seu tipo de dispositivo:",
+        "data": {
+          "model": "Qual dispositivo você tem?"
+        }
       }
     },
     "error": {

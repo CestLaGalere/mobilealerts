@@ -8,6 +8,13 @@
           "device_id": "Geräte-ID",
           "name": "Name (optional)"
         }
+      },
+      "select_model": {
+        "title": "Gerätemodell auswählen",
+        "description": "Die Geräte-ID kann nicht eindeutig zugewiesen werden, da mehrere Modelle die gleichen Sensoren haben.\n\nGeräte-ID: {device_id}\n\nBitte wählen Sie Ihren Gerätetyp:",
+        "data": {
+          "model_id": "Welches Gerät haben Sie?"
+        }
       }
     },
     "error": {

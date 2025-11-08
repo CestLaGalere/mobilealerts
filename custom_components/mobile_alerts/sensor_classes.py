@@ -84,7 +84,8 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
             "wd_degrees": "Wind Direction Degrees",
             "ap": "Air Pressure",
             "ppm": "Air Quality",
-            "w": "Water",
+            "w": "Window Contact",
+            "water": "Water Detected",
             "battery": "Battery",
             "last_seen": "Last Seen",
             # Key press sensors (MA 10880 Wireless Switch)
@@ -649,7 +650,7 @@ class MobileAlertsLastSeenSensor(MobileAlertsSensor):
 
 
 class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
-    """Implementation of a Mobile Alerts water sensor."""
+    """Implementation of a Mobile Alerts water/contact sensor."""
 
     coordinator: MobileAlertsCoordinator
 
@@ -659,20 +660,39 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
         device: dict[str, str],
         device_info: DeviceInfo,
     ) -> None:
-        """Initialize the water sensor."""
+        """Initialize the water/contact sensor."""
         super().__init__(coordinator)
         self._device_class = None
-        self._type = "t2"
+        self._type = device.get(CONF_TYPE, "w")
+
+        _LOGGER.debug(
+            "MobileAlertsWaterSensor::init - device config: %s",
+            device,
+        )
+
+        # Use MOISTURE for water detection, but generic for window contact
+        # "w" key is used for both - we'll let the device type determine behavior
         self._attr_device_class = BinarySensorDeviceClass.MOISTURE
         self._device_id = device[CONF_DEVICE_ID]
-        self._attr_name = device[CONF_NAME]
+        self._device_name = device[CONF_NAME]
         self._attr_device_info = device_info
         self._id = self._device_id + self._type
         self._attr_unique_id = self._id
+
+        # Set display name based on sensor type
+        # Water sensor is only used with "water" type (MA10350 override for t2)
+        type_label = "Water Detected"
+        self._attr_name = f"{self._device_name} {type_label}"
+
         self.extract_reading()
         self._attr_attribution = ATTRIBUTION
 
-        _LOGGER.debug("MobileAlertsWaterSensor::init ID %s", self._id)
+        _LOGGER.debug(
+            "MobileAlertsWaterSensor::init ID %s, type=%s, name=%s",
+            self._id,
+            self._type,
+            self._attr_name,
+        )
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -694,8 +714,110 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
         state = STATE_UNKNOWN
         available = False
 
+        # Map sensor type to measurement key
+        # "water" is a sensor type override, but the actual measurement key is "t2"
+        measurement_key = "t2" if self._type == "water" else self._type
+
         if len(self._type) == 0:
             # run through measurements to get first non date one and use this
+            for measurement, value in measurement_data.items():
+                if measurement in ["idx", "ts", "c"]:
+                    continue
+                state = value
+                available = True
+                break
+        elif measurement_key in measurement_data:
+            state = measurement_data[measurement_key]
+            available = True
+
+        # Convert state to on/off
+        # Handles both Boolean (True/False) and int (0/1) formats
+        if state is not None and state != STATE_UNKNOWN:
+            try:
+                if isinstance(state, bool):
+                    # Boolean format (True = on/wet/open, False = off/dry/closed)
+                    self._attr_is_on = state
+                else:
+                    # Int format (1 = on/wet/open, 0 = off/dry/closed)
+                    self._attr_is_on = int(state) == 1
+                self._attr_available = available
+            except (ValueError, TypeError):
+                _LOGGER.warning(
+                    "Invalid water/contact sensor value for %s: %s (type: %s)",
+                    self._attr_name,
+                    state,
+                    type(state).__name__,
+                )
+                self._attr_is_on = False
+                self._attr_available = False
+        else:
+            self._attr_is_on = False
+            self._attr_available = False
+
+        _LOGGER.debug(
+            "MobileAlertsWaterSensor::extract_reading %s %s:%s",
+            self._attr_name,
+            self._attr_is_on,
+            self._attr_available,
+        )
+
+
+class MobileAlertsContactSensor(CoordinatorEntity, BinarySensorEntity):
+    """Implementation of a Mobile Alerts contact sensor (window/door).
+
+    Contact sensors report True/False for open/closed state.
+    Examples: MA10800 Wireless Contact Sensor
+    """
+
+    coordinator: MobileAlertsCoordinator
+
+    def __init__(
+        self,
+        coordinator: MobileAlertsCoordinator,
+        device: dict[str, str],
+        device_info: DeviceInfo,
+    ) -> None:
+        """Initialize the contact sensor."""
+        super().__init__(coordinator)
+        self._device_class = None
+        # Contact sensor uses 'w' measurement key
+        self._type = device.get(CONF_TYPE, "w")
+        self._attr_device_class = BinarySensorDeviceClass.OPENING
+        self._device_id = device[CONF_DEVICE_ID]
+        self._device_name = device[CONF_NAME]
+        self._attr_name = self._device_name
+        self._attr_device_info = device_info
+        self._id = self._device_id + self._type
+        self._attr_unique_id = self._id
+        self.extract_reading()
+        self._attr_attribution = ATTRIBUTION
+
+        _LOGGER.debug(
+            "MobileAlertsContactSensor::init ID %s, type=%s", self._id, self._type
+        )
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self.extract_reading()
+        self.async_write_ha_state()
+
+    def extract_reading(self) -> None:
+        """Extract contact state from coordinator."""
+        data = self.coordinator.get_reading(self._device_id)
+        self._attr_extra_state_attributes = data if data is not None else {}
+        self._attr_available = False
+        if data is None:
+            return
+        if "measurement" not in data:
+            return
+
+        measurement_data = data["measurement"]
+        state = STATE_UNKNOWN
+        available = False
+
+        if len(self._type) == 0:
+            # run through measurements to get first non-date one
             for measurement, value in measurement_data.items():
                 if measurement in ["idx", "ts", "c"]:
                     continue
@@ -706,12 +828,33 @@ class MobileAlertsWaterSensor(CoordinatorEntity, BinarySensorEntity):
             state = measurement_data[self._type]
             available = True
 
-        if state is not None:
-            self._attr_is_on = int(state) == 1
-        self._attr_available = available
+        # Convert state to on/off
+        # Contact sensors: True/False (API) or 1/0 (legacy format)
+        # True/1 = Open, False/0 = Closed
+        if state is not None and state != STATE_UNKNOWN:
+            try:
+                if isinstance(state, bool):
+                    # Boolean format from API (True = open, False = closed)
+                    self._attr_is_on = state
+                else:
+                    # Int format (1 = open, 0 = closed)
+                    self._attr_is_on = int(state) == 1
+                self._attr_available = available
+            except (ValueError, TypeError):
+                _LOGGER.warning(
+                    "Invalid contact sensor value for %s: %s (type: %s)",
+                    self._attr_name,
+                    state,
+                    type(state).__name__,
+                )
+                self._attr_is_on = False
+                self._attr_available = False
+        else:
+            self._attr_is_on = False
+            self._attr_available = False
 
         _LOGGER.debug(
-            "MobileAlertsWaterSensor::extract_reading %s %s:%s",
+            "MobileAlertsContactSensor::extract_reading %s %s:%s",
             self._attr_name,
             self._attr_is_on,
             self._attr_available,

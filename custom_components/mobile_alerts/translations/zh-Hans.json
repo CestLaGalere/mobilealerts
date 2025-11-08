@@ -8,6 +8,13 @@
           "device_id": "设备 ID",
           "name": "名称（可选）"
         }
+      },
+      "select_model": {
+        "title": "选择设备型号",
+        "description": "设备 ID 无法唯一识别，因为多个型号具有相同的传感器。\n\n设备 ID: {device_id}\n\n请选择您的设备类型:",
+        "data": {
+          "model": "您有哪种设备?"
+        }
       }
     },
     "error": {
