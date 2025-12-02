@@ -35,7 +35,6 @@ Open your browser to: **http://localhost:8123**
 
 Attention: port forwarding in VS Code 8123 to localhost:8123 must be active, because HA runs in dev container connected via WDSL or SSH remote extension.
 
-The current username = test, password = test8123
 
 ### 3. Add a Test Device
 

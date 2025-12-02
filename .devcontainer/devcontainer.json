@@ -1,5 +1,5 @@
 {
-    "name": "Aseko Local Dev",
+    "name": "Mobile Alerts Dev",
     "image": "mcr.microsoft.com/devcontainers/python:3.13",
     "postCreateCommand": "scripts/setup",
     // Port 5683 udp is used by Shelly integration, port 47524 is used by Aseko units

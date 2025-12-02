@@ -80,6 +80,12 @@ DEVICE_MODELS: Final = {
         },  # t2 = water level (NOT cable temperature like MA10300)
         "description": "Temperature, humidity, and water detection",
     },
+    "MA10402": {
+        "name": "MA 10402",
+        "display_name": "Wireless CO2 Monitor",
+        "measurement_keys": {"t1", "t2", "h", "ppm"},
+        "description": "Temperature, humidity, and CO2 monitoring",
+    },
     "MA10450": {
         "name": "MA 10450",
         "display_name": "Wireless Temperature Station",

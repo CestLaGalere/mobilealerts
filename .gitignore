@@ -58,6 +58,8 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+config/
+!/config/configuration.yaml
 
 # Translations
 *.mo

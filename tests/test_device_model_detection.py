@@ -217,6 +217,24 @@ class TestDeviceModelDetection:
         assert model_id == "MA10800"
         assert model_info["measurement_keys"] == {"w"}
 
+    def test_ma10402_contact_sensor(self):
+        """Test detection of MA10800 - Contact sensor."""
+        measurement = {
+            "ts": 1704067200,
+            "idx": "0E7EA4A71203",
+            "c": 0,
+            "t1": 22.0,
+            "t2": 5.5,
+            "h": 51.0,
+            "ppm": 450,
+            "lb": False,
+        }
+        result = detect_device_model(measurement)
+        assert result is not None
+        model_id, model_info = result
+        assert model_id == "MA10402"
+        assert model_info["measurement_keys"] == {"t1", "t2", "h", "ppm"}
+
     def test_ma10880_switch(self):
         """Test detection of MA10880 - Wireless switch."""
         measurement = {
