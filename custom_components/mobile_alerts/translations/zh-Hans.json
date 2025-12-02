@@ -3,13 +3,10 @@
     "step": {
       "user": {
         "title": "添加 Mobile Alerts 设备",
-        "description": "输入设备 ID。示例：090005AC99E2\n\n{migration_info}",
+        "description": "输入设备 ID。示例：090005AC99E2",
         "data": {
           "device_id": "设备 ID",
           "name": "名称（可选）"
-        },
-        "data_description": {
-          "migration_info": "如果您已在 configuration.yaml 中配置了设备（旧版本），它们将不会显示在用户界面中。但是，实体仍然存在。您可以再次添加设备 ID 并重新启动 Home Assistant。设备将正确显示。之后，您可以从 configuration.yaml 中删除旧的 mobile_alerts 条目。"
         }
       },
       "select_model": {

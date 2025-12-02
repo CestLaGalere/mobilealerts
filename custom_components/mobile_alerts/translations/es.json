@@ -3,13 +3,10 @@
     "step": {
       "user": {
         "title": "Agregar dispositivo Mobile Alerts",
-        "description": "Ingrese el ID del dispositivo. Ejemplo: 090005AC99E2\n\n{migration_info}",
+        "description": "Ingrese el ID del dispositivo. Ejemplo: 090005AC99E2",
         "data": {
           "device_id": "ID del dispositivo",
           "name": "Nombre (opcional)"
-        },
-        "data_description": {
-          "migration_info": "Si ya ha configurado dispositivos en configuration.yaml (versión anterior), no se mostrarán en la interfaz de usuario. Sin embargo, las entidades siguen existiendo. Puede agregar el ID del dispositivo nuevamente y reiniciar Home Assistant. Los dispositivos se mostrarán correctamente. Después de eso, puede eliminar las entradas antiguas de mobile_alerts de configuration.yaml."
         }
       },
       "select_model": {
