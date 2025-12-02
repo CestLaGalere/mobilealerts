@@ -7,6 +7,9 @@
         "data": {
           "device_id": "Geräte-ID",
           "name": "Name (optional)"
+        },
+        "data_description": {
+          "migration_info": "Falls Sie bereits in configuration.yaml Geräte konfiguriert haben (ältere Version), werden diese nicht in der Benutzeroberfläche angezeigt. Die Entitäten sind jedoch noch vorhanden. Sie können die Geräte-ID erneut hinzufügen und Home Assistant neu starten. Die Geräte werden dann korrekt angezeigt. Danach können Sie die alten mobile_alerts Einträge aus configuration.yaml entfernen."
         }
       },
       "select_model": {

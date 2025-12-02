@@ -6,8 +6,8 @@ from typing import Any, Optional
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
+from homeassistant.config_entries import ConfigFlowResult
 
 from .api import ApiError, MobileAlertsApi
 from .const import CONF_PHONE_ID, CONF_MODEL_ID, DOMAIN
@@ -31,7 +31,7 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: Optional[dict[str, Any]] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the initial step - ask for device ID."""
         errors: dict[str, str] = {}
 
@@ -204,19 +204,19 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={
                 "migration_info": (
-                    "Falls Sie bereits in configuration.yaml Geräte konfiguriert haben "
-                    "(ältere Version), werden diese nicht in der Benutzeroberfläche angezeigt. "
-                    "Die Entitäten sind jedoch noch vorhanden. Sie können die Geräte-ID erneut "
-                    "hinzufügen und Home Assistant neu starten. Die Geräte werden dann korrekt "
-                    "angezeigt. Danach können Sie die alten Mobile Alerts Einträge aus "
-                    "configuration.yaml entfernen."
+                    "If you have already configured devices in configuration.yaml "
+                    "(older version), they will not be shown in the user interface. "
+                    "However, the entities still exist. You can add the Device ID again "
+                    "and restart Home Assistant. The devices will then be displayed correctly. "
+                    "After that, you can remove the old mobile_alerts entries from "
+                    "configuration.yaml."
                 ),
             },
         )
 
     async def async_step_select_model(
         self, user_input: Optional[dict[str, Any]] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle model selection for ambiguous devices.
 
         Some devices have identical measurement keys but different meanings for keys.

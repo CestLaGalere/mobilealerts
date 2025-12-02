@@ -62,13 +62,14 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
         },
     },
     "090005AC99E2": {
-        "name": "MA10200 - Thermo-Hygrometer",
-        "model": "MA10200",
+        "name": "MA10300 - Thermo-Hygrometer",
+        "model": "MA10300",
         "measurement": {
             "idx": 200,
             "ts": int(datetime.now().timestamp()),
             "c": int(datetime.now().timestamp()) + 5,
             "t1": 21.3,
+            "t2": 11.0,
             "h": 45.0,
         },
     },

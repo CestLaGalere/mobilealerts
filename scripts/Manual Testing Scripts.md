@@ -2,7 +2,12 @@
 
 ## Overview
 
-This guide explains how to manually test the Mobile Alerts Home Assistant integration using a mock API server. This allows you to test the integration without real devices or API calls to the live service.
+This guide explains how to manually test the Mobile Alerts Home Assistant integration. You can choose between:
+
+- **Mock API** - Test with simulated devices (no real hardware needed)
+- **Real API** - Test with your actual Mobile Alerts devices
+
+The test environment automatically sets up Home Assistant with the Mobile Alerts integration.
 
 ## Quick Start
 
@@ -10,21 +15,41 @@ This guide explains how to manually test the Mobile Alerts Home Assistant integr
 
 ```bash
 cd /workspaces/mobilealerts
-bash tests/start-test-server.sh
+bash scripts/start-ha.sh
 ```
 
-This will:
+You will be prompted to choose:
 
-- ✅ Start the Mock API Server on port 8888
+1. **Mock API** (default) - For testing without real devices
+2. **Real API** - For testing with actual Mobile Alerts devices
+
+The script will then:
+
+- ✅ Start Mock API Server on port 8888 (if option 1 selected)
 - ✅ Start Home Assistant on port 8123
-- ✅ **Create symlink** to `custom_components/mobile_alerts` in `~/.homeassistant/`
-- ✅ Display available test devices
-- ✅ Configure the environment
+- ✅ Create symlink to `custom_components/mobile_alerts` in config directory
+- ✅ Configure environment variables (Mock API only)
+- ✅ Display available test devices (Mock API only)
+
+**Mock API vs Real API:**
+
+- **Mock API** (Option 1):
+
+  - Uses test devices with fake data
+  - No internet connection required
+  - Sets `MOBILE_ALERTS_API_URL` to `http://localhost:8888`
+  - Perfect for development and testing
+
+- **Real API** (Option 2):
+  - Connects to actual Mobile Alerts cloud service
+  - Requires real devices and internet connection
+  - No `MOBILE_ALERTS_API_URL` set (uses default production API)
+  - Use your real Device IDs from the Mobile Alerts app
 
 **Important:** The script automatically creates a symlink so Home Assistant finds the Mobile Alerts integration:
 
 ```bash
-ln -s /workspaces/mobilealerts/custom_components/mobile_alerts ~/.homeassistant/custom_components/
+ln -s /workspaces/mobilealerts/custom_components /workspaces/mobilealerts/config/custom_components
 ```
 
 This is why the integration shows up in Home Assistant UI.
@@ -35,31 +60,59 @@ Open your browser to: **http://localhost:8123**
 
 Attention: port forwarding in VS Code 8123 to localhost:8123 must be active, because HA runs in dev container connected via WDSL or SSH remote extension.
 
-
-### 3. Add a Test Device
+### 3. Add a Device
 
 1. Go to **Settings** → **Devices & Services**
-2. Click **Create Integration**
+2. Click **Add Integration**
 3. Search for **Mobile Alerts**
-4. Enter a test Device ID (see below)
+4. Enter a Device ID:
+   - **Mock API**: Use test Device IDs (see table below)
+   - **Real API**: Use your actual Device ID from Mobile Alerts app
 5. Watch the detection and sensor creation
 
 ### 4. Stop the Test Environment
 
 ```bash
-bash tests/stop-test-server.sh
+bash scripts/stop-services.sh
 ```
 
----
+### 5. Reset Home Assistant (Clean Slate)
 
-## Test Device IDs
+If you need to reset Home Assistant to a clean state (e.g., after testing, corrupted data, or onboarding issues):
+
+```bash
+bash scripts/reset-ha.sh
+```
+
+This interactive script will:
+
+- ✅ Stop Home Assistant and Mock API Server
+- ✅ Remove all runtime files (.storage, database, logs, etc.)
+- ✅ Ask you how to handle configuration.yaml:
+  - **Option 1:** Keep current configuration
+  - **Option 2:** Restore default test configuration (from `tests/default_configuration.yaml`)
+  - **Option 3:** Restore from Git (git checkout)
+- ✅ Keep only `configuration.yaml` (based on your choice)
+
+**When to use reset:**
+
+- Home Assistant shows "Unable to connect"
+- Onboarding stuck or failed
+- Testing different configurations
+- Starting fresh after integration changes
+
+After reset, simply run `bash scripts/start-ha.sh` again to start with a clean environment.
+
+## Test Device IDs (Mock API Only)
+
+When using **Mock API** (Option 1), these test devices are available:
 
 The mock server provides these test devices:
 
 | Device ID      | Model   | Type                                | Test Case                        |
 | -------------- | ------- | ----------------------------------- | -------------------------------- |
-| `090005AC99E1` | MA10100 | Thermometer                         | Single measurement key           |
-| `090005AC99E2` | MA10200 | Thermo-Hygrometer                   | Multiple keys                    |
+| `090005AC99E1` | MA10100 | Thermometer                         | t1                               |
+| `090005AC99E2` | MA10300 | Thermo-Hygrometer                   | t1,t2,h                          |
 | `090005AC99E3` | MA10230 | Room Climate Station                | Many keys + averages             |
 | `107EEEB46F00` | MA10300 | Thermo-Hygrometer with Cable Sensor | t2 = cable temp                  |
 | `107EEEB46F02` | MA10350 | Water Detector                      | **Ambiguous** - t2 = water level |
@@ -89,9 +142,15 @@ But `t2` means different things:
 ```
 tests/
 ├── mock_api_server.py         # Mock API server (provides fake device data)
-├── start-test-server.sh       # Start Mock Server + Home Assistant
-├── stop-test-server.sh        # Stop all test servers
-└── MANUAL_TESTING.md          # This file
+└── default_configuration.yaml # Default test configuration for HA
+
+
+scripts/
+├── start-ha.sh                # Start Home Assistant with mock server
+├── stop-services.sh           # Stop all services
+├── reset-ha.sh                # Reset HA to clean state (interactive)
+├── setup.sh                   # Initial project setup
+└── Manual Testing Scripts.md  # This file
 ```
 
 ---
@@ -156,11 +215,11 @@ Response:
 
 ```bash
 # Kill existing processes
-bash tests/stop-test-server.sh
+bash scripts/stop-ha.sh
 
 # Or manually specify different ports
 export MOCK_API_PORT=9999
-bash tests/start-test-server.sh
+bash scripts/start-ha.sh
 ```
 
 ### Home Assistant Not Starting
@@ -257,17 +316,25 @@ bash tests/start-test-server.sh
 
 ### `MOBILE_ALERTS_API_URL`
 
-Override the API URL for testing:
+This environment variable controls which API Home Assistant uses:
+
+- **Not set** (default): Uses production Mobile Alerts API
+- **Set to mock URL**: Uses local test server
+
+The `start-ha.sh` script automatically manages this:
+
+- **Option 1 (Mock API)**: Sets `MOBILE_ALERTS_API_URL=http://localhost:8888/api/pv1/device/lastmeasurement`
+- **Option 2 (Real API)**: Variable is unset (uses production API)
+
+You can also set it manually:
 
 ```bash
-# Default (real API)
-export MOBILE_ALERTS_API_URL="https://www.data199.com/api/pv1/device/lastmeasurement"
+# Use real API
+unset MOBILE_ALERTS_API_URL
 
-# Mock server
+# Use mock server
 export MOBILE_ALERTS_API_URL="http://localhost:8888/api/pv1/device/lastmeasurement"
 ```
-
-This is set automatically by `start-test-server.sh`.
 
 ### `MOCK_API_PORT`
 
@@ -275,7 +342,7 @@ Change the mock server port:
 
 ```bash
 export MOCK_API_PORT=9999
-bash tests/start-test-server.sh
+bash scripts/start-ha.sh
 ```
 
 ---
@@ -374,9 +441,9 @@ Then restart the server for changes to take effect.
 **Solution:**
 
 ```bash
-bash tests/stop-test-server.sh
+bash scripts/stop-ha.sh
 # Wait 2 seconds
-bash tests/start-test-server.sh
+bash scripts/start-ha.sh
 ```
 
 Or manually stop:
@@ -395,26 +462,42 @@ Use one of the test Device IDs from the table above. Check your spelling (case-s
 
 ### Home Assistant shows "Recovery Mode"
 
-**Problem:** Home Assistant couldn't start properly.
+**Problem:** Home Assistant couldn't start properly or shows "Unable to connect" after user creation.
 
 **Solution:**
 
-1. Stop everything:
+Use the reset script to clean everything:
 
-   ```bash
-   bash tests/stop-test-server.sh
-   ```
+```bash
+bash scripts/reset-ha.sh
+```
 
-2. Remove corrupted Home Assistant config:
+When prompted, choose:
 
-   ```bash
-   rm -rf ~/.homeassistant
-   ```
+- **Option 2** to restore default test configuration
+- Or **Option 3** to restore from Git
 
-3. Start fresh:
-   ```bash
-   bash tests/start-test-server.sh
-   ```
+Then start fresh:
+
+```bash
+bash scripts/start-ha.sh
+```
+
+**What the reset script does:**
+
+- Stops all running services
+- Removes `.storage/`, `home-assistant.log*`, `home-assistant_v2.db*`
+- Removes `.HA_VERSION`, `.uuid`, `.ha_run.lock`
+- Removes `deps/`, `blueprints/`, `custom_components/` (will be recreated by symlink)
+- Restores `configuration.yaml` based on your choice
+
+**Alternative (manual):**
+
+```bash
+bash scripts/stop-services.sh
+rm -rf config/.storage config/home-assistant* config/.HA_VERSION config/deps
+bash scripts/start-ha.sh
+```
 
 ### "Ambiguous device" prompt on every device add
 

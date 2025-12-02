@@ -1,9 +1,13 @@
 {
     "name": "Mobile Alerts Dev",
     "image": "mcr.microsoft.com/devcontainers/python:3.13",
-    "postCreateCommand": "scripts/setup",
+    "postCreateCommand": "bash scripts/setup.sh",
     // Port 5683 udp is used by Shelly integration, port 47524 is used by Aseko units
-    "appPort": ["8123:8123", "47524:47524", "5683:5683/udp"],
+    "appPort": [
+        "8123:8123",
+        "47524:47524",
+        "5683:5683/udp"
+    ],
     "customizations": {
         "vscode": {
             "extensions": [
