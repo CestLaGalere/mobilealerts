@@ -11,7 +11,7 @@ from homeassistant.helpers import config_validation as cv
 
 from .api import ApiError, MobileAlertsApi
 from .const import CONF_PHONE_ID, CONF_MODEL_ID, DOMAIN
-from .device import detect_device_model, find_all_matching_models
+from .device import find_all_matching_models
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,9 +85,9 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             errors["base"] = "device_offline_no_data"
                         else:
                             # Try to detect the device model from measurement data
-                            model_result = detect_device_model(measurement)
+                            all_matches = find_all_matching_models(measurement)
 
-                            if not model_result:
+                            if not all_matches:
                                 _LOGGER.error(
                                     "Could not detect device model for device %s. "
                                     "Raw measurement data: %s. Device data: %s. "
@@ -97,27 +97,22 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                     device_data,
                                 )
                                 errors["base"] = "device_not_supported"
+                            elif len(all_matches) > 1:
+                                # Multiple models match - ask user which one
+                                _LOGGER.info(
+                                    "Device %s ambiguous - multiple models match: %s",
+                                    device_id,
+                                    [m_id for m_id, _ in all_matches],
+                                )
+                                # Store data for step2
+                                self._device_data = device_data
+                                self._device_id = device_id
+                                self._device_name = device_name
+                                self._candidates = all_matches
+                                return await self.async_step_select_model()
                             else:
-                                model_id, model_info = model_result
-
-                                # Check for ambiguous devices (multiple models with same measurement_keys)
-                                all_matches = find_all_matching_models(measurement)
-
-                                if len(all_matches) > 1:
-                                    # Multiple models match - ask user which one
-                                    _LOGGER.info(
-                                        "Device %s ambiguous - multiple models match: %s",
-                                        device_id,
-                                        [m_id for m_id, _ in all_matches],
-                                    )
-                                    # Store data for step2
-                                    self._device_data = device_data
-                                    self._device_id = device_id
-                                    self._device_name = device_name
-                                    self._candidates = all_matches
-                                    return await self.async_step_select_model()
-
                                 # Single match - proceed normally
+                                model_id, model_info = all_matches[0]
                                 _LOGGER.info(
                                     "Device %s identified as %s: %s",
                                     device_id,

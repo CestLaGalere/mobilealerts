@@ -1,6 +1,9 @@
 """Tests for device model detection with real-world measurement data."""
 
-from custom_components.mobile_alerts.device import detect_device_model, DEVICE_MODELS
+from custom_components.mobile_alerts.device import (
+    find_all_matching_models,
+    DEVICE_MODELS,
+)
 
 
 class TestDeviceModelDetection:
@@ -15,16 +18,12 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        # Result could be single tuple or list of tuples (if ambiguous)
-        if isinstance(result, list):
-            assert "MA10100" in [model_id for model_id, _ in result]
-            model_id = "MA10100"
-            model_info = next(info for mid, info in result if mid == model_id)
-        else:
-            model_id, model_info = result
-            assert model_id == "MA10100"
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0, "Should find at least one matching model"
+        # Could match MA10100, MA10120 (both have only t1)
+        model_ids = [model_id for model_id, _ in result]
+        assert "MA10100" in model_ids or "MA10120" in model_ids
+        model_id, model_info = result[0]
         assert model_info["measurement_keys"] == {"t1"}
 
     def test_ma10101_thermometer_with_cable(self):
@@ -37,12 +36,11 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        model_id, model_info = result
-        # Could match MA10101 or MA10700 - both have t1, t2
-        # Should prefer exact match if available
-        assert model_id in ["MA10101", "MA10700"]
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
+        # Could match MA10101 - exact match
+        assert model_id == "MA10101"
 
     def test_ma10200_thermo_hygro(self):
         """Test detection of MA10200 - Thermo-Hygrometer."""
@@ -54,16 +52,11 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        # Result could be single tuple or list of tuples (if ambiguous)
-        if isinstance(result, list):
-            model_id, model_info = result[0]  # Pick first candidate
-            assert model_id in ["MA10200", "MA10230", "MA10241"]
-        else:
-            model_id, model_info = result
-            # Could match MA10200, MA10230, MA10241 - all have t1, h
-            assert model_id in ["MA10200", "MA10230", "MA10241"]
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        # Could match MA10200, MA10241 (both have t1, h)
+        model_ids = [model_id for model_id, _ in result]
+        assert any(m in model_ids for m in ["MA10200", "MA10241"])
 
     def test_ma10238_air_pressure_monitor(self):
         """Test detection of MA10238 - Air pressure monitor."""
@@ -76,9 +69,9 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        model_id, model_info = result
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
         assert model_id == "MA10238"
         assert model_info["measurement_keys"] == {"t1", "h1", "ap"}
 
@@ -89,7 +82,7 @@ class TestDeviceModelDetection:
         Device has many additional keys (h3havg, h24havg, h7davg, h30davg)
         which are averages and should be ignored.
 
-        Should match MA10230 (t1, h), NOT MA10100 (t1 only).
+        Should match MA10230 (t1, h, averages), NOT MA10100 (t1 only).
         This tests the scoring system that prefers models with more matches.
         """
         measurement = {
@@ -104,10 +97,10 @@ class TestDeviceModelDetection:
             "h7davg": 35.0,
             "h30davg": 40.0,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        model_id, model_info = result
-        # Should match MA10230 (t1, h), not MA10100 (t1 only)
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
+        # Should match MA10230 (t1, h, averages), not MA10100 (t1 only)
         assert model_id == "MA10230", f"Expected MA10230 but got {model_id}"
         assert model_info["measurement_keys"] == {
             "t1",
@@ -123,7 +116,7 @@ class TestDeviceModelDetection:
 
         Note: MA10300 and MA10350 both have identical measurement keys {t1, t2, h}.
         The difference is that MA10300's t2 is cable temperature while MA10350's t2 is water level.
-        When both match, the function returns a list and user must disambiguate.
+        When both match, the function returns both in a list.
         """
         measurement = {
             "t1": 22.5,
@@ -134,21 +127,12 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-
-        # Result could be single tuple or list of tuples (if ambiguous)
-        if isinstance(result, list):
-            # Ambiguous - both MA10300 and MA10350 match
-            model_ids = [model_id for model_id, _ in result]
-            assert "MA10300" in model_ids
-            assert "MA10350" in model_ids
-        else:
-            # Unambiguous
-            model_id, model_info = result
-            # Only MA10300 is detected (not MA10350) - which shouldn't happen
-            # since both have same keys
-            assert model_id in ["MA10300", "MA10350"]
+        result = find_all_matching_models(measurement)
+        assert len(result) >= 2, "Should find both MA10300 and MA10350"
+        # Ambiguous - both MA10300 and MA10350 match
+        model_ids = [model_id for model_id, _ in result]
+        assert "MA10300" in model_ids
+        assert "MA10350" in model_ids
 
     def test_ma10350_thermo_hygro_water(self):
         """Test detection of MA10350 - Thermo-Hygrometer with water detector."""
@@ -161,11 +145,11 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        model_id, model_info = result
-        # Could match MA10300, MA10350, or MA10700 - all have t1, h1, t2
-        assert model_id in ["MA10300", "MA10350", "MA10700"]
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
+        # Could match MA10700 which has t1, h1, t2
+        assert model_id == "MA10700"
         assert model_info["measurement_keys"] == {"t1", "t2", "h1"}
 
     def test_ma10650_rain_gauge(self):
@@ -179,9 +163,9 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        model_id, model_info = result
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
         assert model_id == "MA10650"
         assert model_info["measurement_keys"] == {"t1", "r", "rf"}
 
@@ -196,9 +180,9 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        model_id, model_info = result
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
         assert model_id == "MA10660"
         assert model_info["measurement_keys"] == {"ws", "wg", "wd"}
 
@@ -211,14 +195,14 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        model_id, model_info = result
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
         assert model_id == "MA10800"
         assert model_info["measurement_keys"] == {"w"}
 
-    def test_ma10402_contact_sensor(self):
-        """Test detection of MA10800 - Contact sensor."""
+    def test_ma10402_co2_monitor(self):
+        """Test detection of MA10402 - CO2 Monitor."""
         measurement = {
             "ts": 1704067200,
             "idx": "0E7EA4A71203",
@@ -229,9 +213,9 @@ class TestDeviceModelDetection:
             "ppm": 450,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        model_id, model_info = result
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
         assert model_id == "MA10402"
         assert model_info["measurement_keys"] == {"t1", "t2", "h", "ppm"}
 
@@ -251,9 +235,9 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is not None
-        model_id, model_info = result
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
         assert model_id == "MA10880"
         assert model_info["measurement_keys"] == {
             "kp1t",
@@ -267,28 +251,28 @@ class TestDeviceModelDetection:
         }
 
     def test_empty_measurement(self):
-        """Test that empty measurement returns None."""
-        result = detect_device_model({})
-        assert result is None
+        """Test that empty measurement returns empty list."""
+        result = find_all_matching_models({})
+        assert result == []
 
     def test_none_measurement(self):
-        """Test that None measurement returns None."""
-        result = detect_device_model(None)
-        assert result is None
+        """Test that None measurement returns empty list."""
+        result = find_all_matching_models(None)
+        assert result == []
 
     def test_metadata_only_measurement(self):
-        """Test that measurement with only metadata returns None."""
+        """Test that measurement with only metadata returns empty list."""
         measurement = {
             "ts": 1704067200,
             "idx": "0E7EA4A71203",
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is None
+        result = find_all_matching_models(measurement)
+        assert result == []
 
     def test_unknown_measurement_keys(self):
-        """Test that measurement keys not in any device return None."""
+        """Test that measurement keys not in any device return empty list."""
         measurement = {
             "xyz": 123,  # Unknown measurement key
             "ts": 1704067200,
@@ -296,8 +280,8 @@ class TestDeviceModelDetection:
             "c": 0,
             "lb": False,
         }
-        result = detect_device_model(measurement)
-        assert result is None
+        result = find_all_matching_models(measurement)
+        assert result == []
 
     def test_device_models_structure(self):
         """Test that all device models have required keys."""

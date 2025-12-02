@@ -135,23 +135,25 @@ DEVICE_MODELS: Final = {
 }
 
 
-def detect_device_model(
+def find_all_matching_models(
     measurement: dict[str, Any] | None,
-) -> tuple[str, dict[str, Any]] | None:
-    """Detect device model from measurement data.
+) -> list[tuple[str, dict[str, Any]]]:
+    """Find ALL device models that match the given measurement data.
+
+    Tries exact match first, then falls back to subset matching (with scoring).
+    Used by config_flow to detect devices and handle ambiguous cases.
 
     Args:
         measurement: The measurement dict from API response or None
 
     Returns:
-        Tuple of (model_id, model_info) or None if unknown
-        Example: ("MA10300", {"api_id": "ID06", "name": "MA 10300", ...})
-
-    Note: Returns only ONE result even if multiple models have identical measurement_keys.
-    The config_flow will handle disambiguation if needed.
+        List of (model_id, model_info) tuples that match.
+        - Empty list if no matches found
+        - Single item if one model matches
+        - Multiple items if ambiguous (e.g., MA10300 vs MA10350)
     """
     if not measurement:
-        return None
+        return []
 
     # Get available measurement keys
     keys = set(measurement.keys())
@@ -180,7 +182,7 @@ def detect_device_model(
     keys = {k for k in keys if not any(k.endswith(suffix) for suffix in alert_suffixes)}
 
     if not keys:
-        return None
+        return []
 
     _LOGGER.debug("Detected measurement keys (after cleanup): %s", keys)
 
@@ -188,22 +190,26 @@ def detect_device_model(
     exact_matches = []
     for model_id, model_info in DEVICE_MODELS.items():
         if keys == model_info["measurement_keys"]:
+            exact_matches.append((model_id, model_info))
             _LOGGER.debug(
                 "Exact match found for model %s with measurement_keys: %s",
                 model_id,
                 keys,
             )
-            exact_matches.append((model_id, model_info))
 
-    # If we have exact matches, return first one
-    # (config_flow will detect multiple matches via separate function)
+    # If we have exact matches, return all of them
     if exact_matches:
-        return exact_matches[0]
+        _LOGGER.debug(
+            "Found %d exact match(es): %s",
+            len(exact_matches),
+            [model_id for model_id, _ in exact_matches],
+        )
+        return exact_matches
 
     # Try subset match (device has at least these keys)
     # Use scoring to prefer models with more matching keys
-    best_match = None
     best_score = 0
+    subset_matches = []
 
     for model_id, model_info in DEVICE_MODELS.items():
         if model_info["measurement_keys"].issubset(keys):
@@ -213,7 +219,7 @@ def detect_device_model(
 
             if score > best_score:
                 best_score = score
-                best_match = (model_id, model_info)
+                subset_matches = [(model_id, model_info)]
                 _LOGGER.debug(
                     "Better subset match found for model %s (score=%d). "
                     "Model keys: %s, Actual keys: %s",
@@ -222,9 +228,20 @@ def detect_device_model(
                     model_info["measurement_keys"],
                     keys,
                 )
+            elif score == best_score:
+                # Multiple models with same score - add to list
+                subset_matches.append((model_id, model_info))
+                _LOGGER.debug(
+                    "Equal subset match found for model %s (score=%d). "
+                    "Model keys: %s, Actual keys: %s",
+                    model_id,
+                    score,
+                    model_info["measurement_keys"],
+                    keys,
+                )
             else:
                 _LOGGER.debug(
-                    "Subset match rejected for model %s (score=%d <= current_best=%d). "
+                    "Subset match rejected for model %s (score=%d < current_best=%d). "
                     "Model keys: %s, Actual keys: %s",
                     model_id,
                     score,
@@ -233,8 +250,14 @@ def detect_device_model(
                     keys,
                 )
 
-    if best_match:
-        return best_match
+    if subset_matches:
+        _LOGGER.debug(
+            "Found %d subset match(es) with score %d: %s",
+            len(subset_matches),
+            best_score,
+            [model_id for model_id, _ in subset_matches],
+        )
+        return subset_matches
 
     # Unknown device
     _LOGGER.warning(
@@ -242,75 +265,7 @@ def detect_device_model(
         "Please report this with the full log output.",
         keys,
     )
-    return None
-
-
-def find_all_matching_models(
-    measurement: dict[str, Any] | None,
-) -> list[tuple[str, dict[str, Any]]]:
-    """Find ALL device models that match the given measurement data.
-
-    Used by config_flow to detect ambiguous devices (e.g., MA10300 vs MA10350).
-    Both have identical measurement_keys but t2 means different things.
-
-    Args:
-        measurement: The measurement dict from API response or None
-
-    Returns:
-        List of (model_id, model_info) tuples that have exact measurement_key match
-    """
-    if not measurement:
-        return []
-
-    # Get available measurement keys
-    keys = set(measurement.keys())
-
-    # Remove metadata keys
-    keys.discard("idx")
-    keys.discard("ts")
-    keys.discard("c")
-    keys.discard("lb")
-
-    # Remove alert flag keys
-    alert_suffixes = [
-        "hi",
-        "lo",
-        "hise",
-        "lose",
-        "hiee",
-        "loee",
-        "his",
-        "los",
-        "aactive",
-        "as",
-        "active",
-        "st",
-    ]
-    keys = {k for k in keys if not any(k.endswith(suffix) for suffix in alert_suffixes)}
-
-    if not keys:
-        return []
-
-    # Find all models with exact measurement_key match
-    matches = []
-    for model_id, model_info in DEVICE_MODELS.items():
-        if keys == model_info["measurement_keys"]:
-            matches.append((model_id, model_info))
-            _LOGGER.debug(
-                "Model %s matches measurement_keys: %s",
-                model_id,
-                keys,
-            )
-
-    if matches:
-        _LOGGER.debug(
-            "Found %d model(s) matching measurement_keys %s: %s",
-            len(matches),
-            keys,
-            [model_id for model_id, _ in matches],
-        )
-
-    return matches
+    return []
 
 
 def get_sensor_type_override(model_id: str, measurement_key: str) -> str | None:
