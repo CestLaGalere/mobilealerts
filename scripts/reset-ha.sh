@@ -62,10 +62,10 @@ echo ""
 # Ask user if they want to restore default configuration
 echo -e "${YELLOW}Restore configuration.yaml?${NC}"
 echo "  1) Keep current configuration.yaml"
-echo "  2) Restore default test configuration (from tests/default_configuration.yaml)"
-echo "  3) Restore from Git (git checkout)"
+echo "  2) Restore default mockup configuration (tests/default_configuration mockup.yaml)"
+echo "  3) Restore default live configuration (tests/default_configuration live.yaml)"
 echo ""
-read -p "Choose option [1-3] (default: 1): " RESTORE_CHOICE
+read -p "Choose option [1-4] (default: 1): " RESTORE_CHOICE
 RESTORE_CHOICE=${RESTORE_CHOICE:-1}
 echo ""
 
@@ -74,22 +74,21 @@ case $RESTORE_CHOICE in
         echo -e "${GREEN}✓ Keeping current configuration.yaml${NC}"
         ;;
     2)
-        if [ -f "$PROJECT_ROOT/tests/default_configuration.yaml" ]; then
-            cp "$PROJECT_ROOT/tests/default_configuration.yaml" "$CONFIG_DIR/configuration.yaml"
-            echo -e "${GREEN}✓ Restored default test configuration${NC}"
+        if [ -f "$PROJECT_ROOT/tests/default_configuration mockup.yaml" ]; then
+            cp "$PROJECT_ROOT/tests/default_configuration mockup.yaml" "$CONFIG_DIR/configuration.yaml"
+            echo -e "${GREEN}✓ Restored default mockup configuration${NC}"
         else
-            echo -e "${RED}✗ Default configuration not found at tests/default_configuration.yaml${NC}"
+            echo -e "${RED}✗ Default mockup configuration not found${NC}"
             exit 1
         fi
         ;;
     3)
-        cd "$PROJECT_ROOT"
-        if git checkout config/configuration.yaml 2>/dev/null; then
-            echo -e "${GREEN}✓ Restored configuration.yaml from Git${NC}"
+        if [ -f "$PROJECT_ROOT/tests/default_configuration live.yaml" ]; then
+            cp "$PROJECT_ROOT/tests/default_configuration live.yaml" "$CONFIG_DIR/configuration.yaml"
+            echo -e "${GREEN}✓ Restored default live configuration${NC}"
         else
-            echo -e "${RED}✗ Could not restore from Git${NC}"
-            echo -e "${YELLOW}Using backup instead...${NC}"
-            cp /tmp/configuration.yaml.backup "$CONFIG_DIR/configuration.yaml"
+            echo -e "${RED}✗ Default live configuration not found${NC}"
+            exit 1
         fi
         ;;
     *)

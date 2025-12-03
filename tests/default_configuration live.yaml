@@ -36,23 +36,4 @@ sensor:
       - device_id: "090005AC99E2"
         name: "Example Hanover real h"
         type: "h"
-# Alternative configuration with mockup server
-# sensor:
-#   - platform: mobile_alerts
-#     phone_id: ""
-#     devices:
-#       - device_id: "090005AC99E1"
-#         name: "Fake mock-server T1"
-#         type: "t1"
-#       - device_id: "090005AC99E1"
-#         name: "Fake mock-server T2"
-#         type: "t2"
-#       - device_id: "090005AC99E2"
-#         name: "Example Hanover fake/real T1"
-#         type: "t1"
-#       - device_id: "090005AC99E2"
-#         name: "Example Hanover fake/real T2"
-#         type: "t2"
-#       - device_id: "090005AC99E2"
-#         name: "Example Hanover real h"
-#         type: "h"
+

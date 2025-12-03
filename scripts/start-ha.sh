@@ -83,45 +83,36 @@ fi
 if [ ! -d "$HA_CONFIG_DIR" ]; then
     echo -e "${GREEN}Creating Home Assistant config directory...${NC}"
     mkdir -p "$HA_CONFIG_DIR"
+fi
 
-    # Create minimal configuration.yaml
-    cat > "$HA_CONFIG_DIR/configuration.yaml" << 'EOF'
-# Home Assistant configuration for testing Mobile Alerts Integration
-homeassistant:
-  name: Mobile Alerts Test
-  latitude: 47.5162
-  longitude: 8.7275
-  elevation: 430
-  unit_system: metric
-  time_zone: Europe/Zurich
+# Create configuration.yaml if it doesn't exist
+if [ ! -f "$HA_CONFIG_DIR/configuration.yaml" ]; then
+    echo -e "${GREEN}Creating configuration.yaml...${NC}"
 
-# Enable the web interface
-http:
-  server_port: 8123
-
-# Text to speech
-tts:
-  - platform: google_translate
-
-# Automation and Script
-automation: !include automations.yaml
-script: !include scripts.yaml
-scene: !include scenes.yaml
-
-# Logger configuration for debugging
-logger:
-  default: info
-  logs:
-    custom_components.mobile_alerts: debug
-    homeassistant.components.mobile_alerts: debug
-EOF
+    # Copy appropriate default configuration based on API choice
+    if [ "$USE_MOCK_API" = true ]; then
+        if [ -f "$PROJECT_ROOT/tests/default_configuration mockup.yaml" ]; then
+            cp "$PROJECT_ROOT/tests/default_configuration mockup.yaml" "$HA_CONFIG_DIR/configuration.yaml"
+            echo -e "${GREEN}✓ Copied default mockup configuration${NC}"
+        else
+            echo -e "${RED}✗ Default mockup configuration not found${NC}"
+            exit 1
+        fi
+    else
+        if [ -f "$PROJECT_ROOT/tests/default_configuration live.yaml" ]; then
+            cp "$PROJECT_ROOT/tests/default_configuration live.yaml" "$HA_CONFIG_DIR/configuration.yaml"
+            echo -e "${GREEN}✓ Copied default live configuration${NC}"
+        else
+            echo -e "${RED}✗ Default live configuration not found${NC}"
+            exit 1
+        fi
+    fi
 
     # Create empty automation, script, and scene files
     touch "$HA_CONFIG_DIR/automations.yaml"
     touch "$HA_CONFIG_DIR/scripts.yaml"
     touch "$HA_CONFIG_DIR/scenes.yaml"
 
-    echo -e "${GREEN}✓ Created minimal Home Assistant configuration${NC}"
     echo ""
 fi
 

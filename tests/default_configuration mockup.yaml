@@ -1,0 +1,44 @@
+homeassistant:
+  name: Mobile Alerts Test
+  unit_system: metric
+  time_zone: UTC
+
+logger:
+  default: info
+  logs:
+    custom_components.mobile_alerts: debug
+
+# Enable HTTP API
+http:
+
+# Enable WebSocket API
+websocket_api:
+
+# History
+history:
+  exclude:
+    entities: []
+
+# API Password (deprecated but needed for legacy access)
+api:
+
+# Mobile Alerts sensor configuration with real example from mobile alerts
+sensor:
+  - platform: mobile_alerts
+    phone_id: ""
+    devices:
+      - device_id: "090005AC99E1"
+        name: "Fake MA10100 T1"
+        type: "t1"
+      - device_id: "090005AC99E1"
+        name: "Fake MA10100 T2"
+        type: "t2"
+      - device_id: "090005AC99E2"
+        name: "Fake MA10300 T1"
+        type: "t1"
+      - device_id: "090005AC99E2"
+        name: "Fake MA10300 T2"
+        type: "t2"
+      - device_id: "090005AC99E2"
+        name: "Fake MA10300 h"
+        type: "h"

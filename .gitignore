@@ -1,7 +1,6 @@
 
 # vscode
 *.code-workspace
-.vscode/
 
 # IDEA
 .idea/
@@ -59,7 +58,6 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 config/
-!/config/configuration.yaml
 
 # Translations
 *.mo
