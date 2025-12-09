@@ -1,0 +1,77 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "添加 Mobile Alerts 设备",
+        "description": "输入设备 ID。示例：090005AC99E2",
+        "data": {
+          "device_id": "设备 ID",
+          "name": "名称（可选）"
+        }
+      },
+      "select_model": {
+        "title": "选择设备型号",
+        "description": "设备 ID 无法唯一识别，因为多个型号具有相同的传感器。\n\n设备 ID: {device_id}\n\n请选择您的设备类型:",
+        "data": {
+          "model": "您有哪种设备?"
+        }
+      }
+    },
+    "error": {
+      "invalid_device_id": "无效的设备 ID",
+      "invalid_device_id_format": "设备 ID 必须为 12 个字符",
+      "device_not_found": "未找到设备",
+      "device_offline_no_data": "设备离线或尚未发送任何数据",
+      "device_not_supported": "设备尚不支持。请在 GitHub 上打开 Issue 并包含完整的日志输出。",
+      "sensor_type_detection_failed": "无法检测到传感器类型",
+      "api_error": "验证期间出现 API 错误",
+      "unknown_error": "发生意外错误"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "温度"
+      },
+      "cable_temperature": {
+        "name": "电缆温度"
+      },
+      "humidity": {
+        "name": "湿度"
+      },
+      "external_humidity": {
+        "name": "外部湿度"
+      },
+      "rain": {
+        "name": "降雨"
+      },
+      "wind_speed": {
+        "name": "风速"
+      },
+      "wind_gust": {
+        "name": "风阵"
+      },
+      "wind_direction": {
+        "name": "风向"
+      },
+      "wind_direction_degrees": {
+        "name": "风向（度数）"
+      },
+      "pressure": {
+        "name": "气压"
+      },
+      "air_quality": {
+        "name": "空气质量"
+      },
+      "window": {
+        "name": "窗口状态"
+      },
+      "battery": {
+        "name": "电池"
+      },
+      "last_seen": {
+        "name": "最后看到"
+      }
+    }
+  }
+}

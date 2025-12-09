@@ -1,0 +1,74 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Mobile Alerts Device",
+        "description": "Enter the device ID. Example: 090005AC99E2",
+        "data": {
+          "device_id": "Device ID",
+          "name": "Name (optional)"
+        }
+      },
+      "select_model": {
+        "title": "Select Device Model",
+        "description": "The device ID cannot be uniquely identified because multiple models have the same sensors.\n\nDevice ID: {device_id}\n\nPlease select your device type:",
+        "data": {
+          "model_id": "Which device do you have?"
+        }
+      }
+    },
+    "error": {
+      "invalid_device_id": "Invalid device ID",
+      "invalid_device_id_format": "Device ID must be 12 characters long",
+      "device_not_found": "Device not found",
+      "device_offline_no_data": "Device is offline or has not sent any data yet",
+      "device_not_supported": "Device not yet supported. Please open an issue on GitHub and include the full log output.",
+      "sensor_type_detection_failed": "Sensor type could not be detected",
+      "api_error": "API error during validation",
+      "unknown_error": "An unexpected error occurred"
+    },
+    "abort": {
+      "not_implemented": "Options not yet implemented"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "cable_temperature": {
+        "name": "Cable Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "external_humidity": {
+        "name": "External Humidity"
+      },
+      "rain": {
+        "name": "Rain"
+      },
+      "wind_speed": {
+        "name": "Wind Speed"
+      },
+      "wind_gust": {
+        "name": "Wind Gust"
+      },
+      "pressure": {
+        "name": "Air Pressure"
+      },
+      "air_quality": {
+        "name": "Air Quality"
+      },
+      "window": {
+        "name": "Window Status"
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "last_seen": {
+        "name": "Last Seen"
+      }
+    }
+  }
+}

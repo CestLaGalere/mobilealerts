@@ -1,0 +1,132 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Home Assistant Core",
+      "type": "shell",
+      "command": "python -m homeassistant -c ./config",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pytest",
+      "type": "shell",
+      "command": "python -m pytest --timeout=10 tests",
+      "dependsOn": [
+        "Install all Test Requirements"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pytest (changed tests only)",
+      "type": "shell",
+      "command": "python -m pytest --timeout=10 --picked",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Ruff (fix)",
+      "type": "shell",
+      "command": "python -m ruff check --fix .",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Ruff (format)",
+      "type": "shell",
+      "command": "python -m ruff format .",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pre-commit",
+      "type": "shell",
+      "command": "pre-commit run --show-diff-on-failure",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Install all Requirements",
+      "type": "shell",
+      "command": "python -m pip install --requirement requirements.txt",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Install all Test Requirements",
+      "type": "shell",
+      "command": "python -m pip install --requirement requirements.txt --requirement requirements.test.txt",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Code Coverage",
+      "detail": "Generate code coverage report for Mobile Alerts integration.",
+      "type": "shell",
+      "command": "python -m pytest ./tests/ --cov=custom_components.mobile_alerts --cov-report term-missing --durations-min=1 --durations=0",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ajouter un appareil Mobile Alerts",
+        "description": "Entrez l'ID de l'appareil. Exemple: 090005AC99E2",
+        "data": {
+          "device_id": "ID de l'appareil",
+          "name": "Nom (optionnel)"
+        }
+      },
+      "select_model": {
+        "title": "Sélectionner le modèle d'appareil",
+        "description": "L'ID de l'appareil ne peut pas être identifié de manière unique car plusieurs modèles ont les mêmes capteurs.\n\nID de l'appareil: {device_id}\n\nVeuillez sélectionner votre type d'appareil:",
+        "data": {
+          "model": "Quel appareil avez-vous?"
+        }
+      }
+    },
+    "error": {
+      "invalid_device_id": "ID de l'appareil invalide",
+      "invalid_device_id_format": "L'ID de l'appareil doit avoir 12 caractères",
+      "device_not_found": "Appareil non trouvé",
+      "device_offline_no_data": "L'appareil est hors ligne ou n'a pas encore envoyé de données",
+      "device_not_supported": "Appareil non encore pris en charge. Veuillez ouvrir un problème sur GitHub et inclure l'intégralité de la sortie du journal.",
+      "sensor_type_detection_failed": "Le type de capteur n'a pas pu être détecté",
+      "api_error": "Erreur API lors de la validation",
+      "unknown_error": "Une erreur inattendue s'est produite"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Température"
+      },
+      "cable_temperature": {
+        "name": "Température du câble"
+      },
+      "humidity": {
+        "name": "Humidité"
+      },
+      "external_humidity": {
+        "name": "Humidité externe"
+      },
+      "rain": {
+        "name": "Pluie"
+      },
+      "wind_speed": {
+        "name": "Vitesse du vent"
+      },
+      "wind_gust": {
+        "name": "Rafales de vent"
+      },
+      "wind_direction": {
+        "name": "Direction du vent"
+      },
+      "wind_direction_degrees": {
+        "name": "Direction du vent (Degrés)"
+      },
+      "pressure": {
+        "name": "Pression atmosphérique"
+      },
+      "air_quality": {
+        "name": "Qualité de l'air"
+      },
+      "window": {
+        "name": "État de la fenêtre"
+      },
+      "battery": {
+        "name": "Batterie"
+      },
+      "last_seen": {
+        "name": "Vu pour la dernière fois"
+      }
+    }
+  }
+}

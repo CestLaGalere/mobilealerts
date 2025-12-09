@@ -1,0 +1,77 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mobile Alerts Gerät hinzufügen",
+        "description": "Geben Sie die Geräte-ID ein. Beispiel: 090005AC99E2",
+        "data": {
+          "device_id": "Geräte-ID",
+          "name": "Name (optional)"
+        }
+      },
+      "select_model": {
+        "title": "Gerätemodell auswählen",
+        "description": "Die Geräte-ID kann nicht eindeutig zugewiesen werden, da mehrere Modelle die gleichen Sensoren haben.\n\nGeräte-ID: {device_id}\n\nBitte wählen Sie Ihren Gerätetyp:",
+        "data": {
+          "model_id": "Welches Gerät haben Sie?"
+        }
+      }
+    },
+    "error": {
+      "invalid_device_id": "Ungültige Geräte-ID",
+      "invalid_device_id_format": "Geräte-ID muss 12 Zeichen lang sein",
+      "device_not_found": "Gerät nicht gefunden",
+      "device_offline_no_data": "Gerät ist offline oder hat noch keine Daten gesendet",
+      "device_not_supported": "Gerät wird noch nicht unterstützt. Bitte öffnen Sie ein Issue auf GitHub und fügen Sie die vollständige Protokollausgabe hinzu.",
+      "sensor_type_detection_failed": "Sensortyp konnte nicht erkannt werden",
+      "api_error": "API-Fehler bei der Validierung",
+      "unknown_error": "Ein unerwarteter Fehler ist aufgetreten"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "cable_temperature": {
+        "name": "Kabeltemperatur"
+      },
+      "humidity": {
+        "name": "Luftfeuchte"
+      },
+      "external_humidity": {
+        "name": "Externe Luftfeuchte"
+      },
+      "rain": {
+        "name": "Regen"
+      },
+      "wind_speed": {
+        "name": "Windgeschwindigkeit"
+      },
+      "wind_gust": {
+        "name": "Windböen"
+      },
+      "wind_direction": {
+        "name": "Windrichtung"
+      },
+      "wind_direction_degrees": {
+        "name": "Windrichtung (Grad)"
+      },
+      "pressure": {
+        "name": "Luftdruck"
+      },
+      "air_quality": {
+        "name": "Luftqualität"
+      },
+      "window": {
+        "name": "Fenster-Status"
+      },
+      "battery": {
+        "name": "Batterie"
+      },
+      "last_seen": {
+        "name": "Zuletzt gesehen"
+      }
+    }
+  }
+}
