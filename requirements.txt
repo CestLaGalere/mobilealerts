@@ -9,3 +9,5 @@ home-assistant-intents>=2025.11.0
 PyTurboJPEG>=1.8.0
 pymicro-vad>=1.0.0
 pyspeex-noise>=1.0.0
+mutagen>=1.0.0
+ha-ffmpeg>=1.0.0
