@@ -43,7 +43,10 @@
         "name": "外部湿度"
       },
       "rain": {
-        "name": "降雨"
+        "name": "降雨总量"
+      },
+      "rain_flips": {
+        "name": "降雨计数器"
       },
       "wind_speed": {
         "name": "风速"

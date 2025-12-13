@@ -82,8 +82,8 @@ see [https://mobile-alerts.eu/info/public_server_api_documentation.pdf](https://
 | h2      | The measured humidity of humidity sensor 2.                                                                                                                                  |
 | h3      | The measured humidity of humidity sensor 3.                                                                                                                                  |
 | h4      | The measured humidity of humidity sensor 4.                                                                                                                                  |
-| r       | The rain value in mm. 0.258 mm of rain are equal to one flip.                                                                                                                |
-| rf      | The flip count of the rain sensor. A flip equals 0.258 mm of rain.                                                                                                           |
+| r       | **The rain value in mm (total counter - never resets).** 0.258 mm of rain are equal to one flip. To track rainfall per hour/day/month/year, use Utility Meter (see below). |
+| rf      | **The flip count of the rain sensor (total counter - never resets).** A flip equals 0.258 mm of rain. To track rainfall per hour/day/month/year, use Utility Meter (see below). |
 | ws      | The measured windspeed in m/s.                                                                                                                                               |
 | wg      | The measured gust in m/s.                                                                                                                                                    |
 | wd      | The wind direction. 0: N, 1: NNE, 2: NE, 3: ENE, 4: E, 5: ESE, 6: SE, 7: SSE, 8: S, 9: SSW, 10: SW, 11: WSW, 12: W, 13: WNW, 14: NW, 15: NNW. Direction degrees = wd \* 22.5 |
@@ -103,6 +103,65 @@ see [https://mobile-alerts.eu/info/public_server_api_documentation.pdf](https://
 | sc      | If the measurement occured because of a status                                                                                                                               |
 | ap      | The measured air pressure in hPa.                                                                                                                                            |
 | water   | water presence sensor (t2 of MA10350)                                                                                                                                        |
+
+## Measuring Rainfall Per Period (Hourly, Daily, Monthly, Yearly)
+
+The rain sensors (`r` and `rf`) report **total cumulative values** that never reset. To track rainfall for specific periods (hourly, daily, monthly, yearly), use Home Assistant's built-in **Utility Meter** integration.
+
+### Using Utility Meter
+
+The Utility Meter integration converts total counters into period-based measurements automatically.
+
+#### Via YAML Configuration
+
+Add this to your `configuration.yaml`:
+
+```yaml
+utility_meter:
+  rain_hourly:
+    source: sensor.rain_rain_quantity_total        # Your rain sensor entity
+    cycle: hourly
+    unit_of_measurement: mm
+
+  rain_daily:
+    source: sensor.rain_rain_quantity_total
+    cycle: daily
+    unit_of_measurement: mm
+
+  rain_monthly:
+    source: sensor.rain_rain_quantity_total
+    cycle: monthly
+    unit_of_measurement: mm
+
+  rain_yearly:
+    source: sensor.rain_rain_quantity_total
+    cycle: yearly
+    unit_of_measurement: mm
+```
+
+Replace `sensor.rain_rain_quantity_total` with your actual rain sensor entity ID.
+
+#### Via UI (Recommended)
+
+1. Go to **Settings → Automations & Scenes → Helpers**
+2. Click **Create Helper → Utility Meter**
+3. Select the rain sensor as source
+4. Set cycle to "Hourly" (or Daily/Monthly/Yearly)
+5. Click **Create**
+
+Repeat for each time period you need.
+
+### Example
+
+After creating the Utility Meter helpers, you'll have new entities:
+- `utility_meter.rain_hourly` - Rainfall in the current hour (mm)
+- `utility_meter.rain_daily` - Rainfall in the current day (mm)
+- `utility_meter.rain_monthly` - Rainfall in the current month (mm)
+- `utility_meter.rain_yearly` - Rainfall in the current year (mm)
+
+These values **reset at the period boundary** (hour, day, month, year) and show only the rainfall for that specific period.
+
+For more information, see the [Home Assistant Utility Meter Documentation](https://www.home-assistant.io/integrations/utility_meter/).
 
 ## Migration YAML verison to UI Version
 
@@ -136,10 +195,40 @@ If you have a Mobile Alerts device that aren't supported yet (see [List of Suppo
    - List of measurement keys it provides
    - Device description
 
-You can find the list with the measurement keys as following:
+You can find the list with the measurement keys for new devices as following:
 
 1. "add entry" and enter the device id as usual
-2. Open logs under "Settings --> System --> Logs and search for "(Error) Could not detect device model for device ..." or check "homeassistant.log" with Studio Code Server.
+2. Open logs under "Settings --> System --> Logs and search for "(Error) Could not detect device model for device ...".
 3. Enter this error message into the opened issue.
+
+For other issues with a known device (addable), do the following:
+1. Change log level of HA to `info`. For this open `configuration.yaml` and add this:
+```yaml
+logger:
+  default: info
+```
+2. Restart HA
+3. You should see the API result of Mobile Alerts like this example:
+```json
+{
+  "devices": [
+    {
+      "deviceid": "XXXXXXXXXXXX",
+      "lastseen": 1765662669,
+      "lowbattery": false,
+      "measurement": {
+        "idx": 870953,
+        "ts": 1765662668,
+        "c": 1765662669,
+        "lb": false,
+        "t1": 23.3,
+        "h": 43.0,
+        "ap": 1026.7,
+      }
+    }
+  ]
+}
+```
+4. Send this information to us as an issue. If you send us the real `deviceid` overright it later with `XXXX`.
 
 This information will help us add support for new devices in future versions of the integration.

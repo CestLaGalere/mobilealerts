@@ -62,7 +62,7 @@ class TestDeviceModelDetection:
         """Test detection of MA10238 - Air pressure monitor."""
         measurement = {
             "t1": 22.5,
-            "h1": 65.0,
+            "h": 65.0,
             "ap": 1013.25,
             "ts": 1704067200,
             "idx": "0E7EA4A71203",
@@ -73,7 +73,7 @@ class TestDeviceModelDetection:
         assert len(result) > 0
         model_id, model_info = result[0]
         assert model_id == "MA10238"
-        assert model_info["measurement_keys"] == {"t1", "h1", "ap"}
+        assert model_info["measurement_keys"] == {"t1", "h", "ap"}
 
     def test_ma10230_room_climate_station_with_h_key(self):
         """Test detection of MA10230 - Room Climate Station with 'h' key.

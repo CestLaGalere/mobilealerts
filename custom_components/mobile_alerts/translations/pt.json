@@ -43,7 +43,10 @@
         "name": "Umidade externa"
       },
       "rain": {
-        "name": "Chuva"
+        "name": "Quantidade de chuva total"
+      },
+      "rain_flips": {
+        "name": "Contador de chuva total"
       },
       "wind_speed": {
         "name": "Velocidade do vento"

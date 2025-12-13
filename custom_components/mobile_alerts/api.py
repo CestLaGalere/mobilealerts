@@ -70,7 +70,7 @@ class MobileAlertsApi:
         _LOGGER.error("Device %s not found in API response", device_id)
         return None
 
-    async def fetch_data(self, is_initial: bool = False) -> None:
+    async def fetch_data(self, is_initial: bool = False) -> dict[str, Any] | None:
         """Fetch latest measurement data from Mobile Alerts API.
 
         For regular 10-minute updates, always uses batch mode to fetch all devices
@@ -81,10 +81,18 @@ class MobileAlertsApi:
         Args:
             is_initial: Currently unused - kept for backward compatibility
 
+        Returns:
+            dict with API response containing devices data, or None if empty
+
         Raises:
             ApiError: If API communication fails
         """
         await self._fetch_batch()
+
+        # Return the internal data that was just fetched
+        if self._data:
+            return {"devices": self._data}
+        return None
 
     async def _fetch_device(self, device_id: str) -> None:
         """Fetch data for a single device during setup.

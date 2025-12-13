@@ -43,7 +43,10 @@
         "name": "Humedad externa"
       },
       "rain": {
-        "name": "Lluvia"
+        "name": "Cantidad de lluvia total"
+      },
+      "rain_flips": {
+        "name": "Contador de lluvia total"
       },
       "wind_speed": {
         "name": "Velocidad del viento"

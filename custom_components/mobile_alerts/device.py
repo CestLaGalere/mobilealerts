@@ -55,7 +55,7 @@ DEVICE_MODELS: Final = {
     "MA10238": {
         "name": "MA 10238",
         "display_name": "Wireless Air Pressure Monitor",
-        "measurement_keys": {"t1", "h1", "ap"},
+        "measurement_keys": {"t1", "h", "ap"},
         "description": "Temperature, humidity, and air pressure",
     },
     "MA10241": {

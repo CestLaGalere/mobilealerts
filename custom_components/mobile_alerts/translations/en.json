@@ -42,7 +42,10 @@
         "name": "External Humidity"
       },
       "rain": {
-        "name": "Rain"
+        "name": "Rain Quantity Total"
+      },
+      "rain_flips": {
+        "name": "Rain Counter Total"
       },
       "wind_speed": {
         "name": "Wind Speed"

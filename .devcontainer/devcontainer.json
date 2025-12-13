@@ -8,6 +8,11 @@
         "47524:47524",
         "5683:5683/udp"
     ],
+    "runArgs": [
+        "--network=bridge",
+        "--dns=1.1.1.1",
+        "--dns=8.8.8.8"
+    ],
     "customizations": {
         "vscode": {
             "extensions": [
