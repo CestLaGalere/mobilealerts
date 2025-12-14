@@ -262,7 +262,7 @@ class MobileAlertsRainSensor(MobileAlertsSensor):
             key=SensorDeviceClass.PRECIPITATION,
             translation_key="rain",
             device_class=SensorDeviceClass.PRECIPITATION,
-            state_class=SensorStateClass.MEASUREMENT,
+            state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfLength.MILLIMETERS,
         )
 
