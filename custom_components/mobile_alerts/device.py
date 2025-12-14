@@ -86,6 +86,12 @@ DEVICE_MODELS: Final = {
         "measurement_keys": {"t1", "t2", "h", "ppm"},
         "description": "Temperature, humidity, and CO2 monitoring",
     },
+    "MA10410": {
+        "name": "MA 10410",
+        "display_name": "Weather Station",
+        "measurement_keys": {"t1", "t2", "h", "h2"},
+        "description": "Temperature indoor, humidity indoor, temperature outdoor, humidity outdoor",
+    },
     "MA10450": {
         "name": "MA 10450",
         "display_name": "Wireless Temperature Station",
