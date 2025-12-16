@@ -1,7 +1,6 @@
 """Data update coordinator for Mobile Alerts."""
 
 from datetime import timedelta
-import json
 import logging
 from typing import Any, Final
 
@@ -18,10 +17,6 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 # Time between updating data from Mobile Alerts API
 SCAN_INTERVAL = timedelta(minutes=SCAN_INTERVAL_MINUTES)
-
-# Log raw API response every N updates (for support/troubleshooting)
-# With SCAN_INTERVAL=10min, this logs every 2 hours
-LOG_RAW_RESPONSE_EVERY_N_UPDATES = 12
 
 
 class MobileAlertsCoordinator(DataUpdateCoordinator):
@@ -47,7 +42,6 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
         )
         self._api = api
         self._is_initial_update = True
-        self._update_counter = 0
 
     async def _async_update_data(self) -> dict[str, Any] | None:
         """Fetch data from API endpoint.
@@ -72,24 +66,6 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
                 self._is_initial_update,
             )
             result = await self._api.fetch_data(is_initial=self._is_initial_update)
-
-            # Log raw response on initial update or periodically for troubleshooting
-            # (every 12 updates = ~2 hours with 10min interval)
-            self._update_counter += 1
-            should_log_raw = (
-                self._is_initial_update
-                or self._update_counter % LOG_RAW_RESPONSE_EVERY_N_UPDATES == 0
-            )
-            if should_log_raw:
-                if result:
-                    log_label = "initial" if self._is_initial_update else "periodic"
-                    _LOGGER.info(
-                        "Raw API Response (%s dump):\n%s",
-                        log_label,
-                        json.dumps(result, indent=2, default=str),
-                    )
-                else:
-                    _LOGGER.info("Raw API Response: empty result")
 
             # After first update, switch to batch mode
             if self._is_initial_update:

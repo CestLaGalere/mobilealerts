@@ -194,6 +194,8 @@ async def async_setup_platform(
         hass.data[DOMAIN] = {}
     if "coordinators" not in hass.data[DOMAIN]:
         hass.data[DOMAIN]["coordinators"] = {}
+    if "coordinators_by_entry" not in hass.data[DOMAIN]:
+        hass.data[DOMAIN]["coordinators_by_entry"] = {}
 
     if phone_id not in hass.data[DOMAIN]["coordinators"]:
         coordinator = MobileAlertsCoordinator(hass, api)
@@ -317,6 +319,8 @@ async def async_setup_entry(
             hass.data[DOMAIN] = {}
         if "coordinators" not in hass.data[DOMAIN]:
             hass.data[DOMAIN]["coordinators"] = {}
+        if "coordinators_by_entry" not in hass.data[DOMAIN]:
+            hass.data[DOMAIN]["coordinators_by_entry"] = {}
 
         if phone_id not in hass.data[DOMAIN]["coordinators"]:
             # Create new API instance for new coordinator
@@ -324,11 +328,17 @@ async def async_setup_entry(
             await api.register_device(device_id)
             coordinator = MobileAlertsCoordinator(hass, api)
             hass.data[DOMAIN]["coordinators"][phone_id] = coordinator
+            hass.data[DOMAIN]["coordinators_by_entry"][config_entry.entry_id] = (
+                coordinator
+            )
             await coordinator.async_config_entry_first_refresh()
             _LOGGER.debug("Created new coordinator for phone_id=%s", phone_id)
         else:
             # Reuse existing coordinator and API
             coordinator = hass.data[DOMAIN]["coordinators"][phone_id]
+            hass.data[DOMAIN]["coordinators_by_entry"][config_entry.entry_id] = (
+                coordinator
+            )
             # Register device and fetch its data
             await coordinator._api.register_device(device_id)
             _LOGGER.debug(

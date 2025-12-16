@@ -1,0 +1,4 @@
+dump_raw_response:
+  name: Dump Raw API Response
+  description: Trigger a refresh and dump the raw API response data for all Mobile Alerts entries
+  fields: {}

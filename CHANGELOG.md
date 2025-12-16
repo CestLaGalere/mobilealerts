@@ -2,12 +2,13 @@
 
 [Back](./README.md)
 
-## v2.0.1 (Dec 13 2025)
+## v2.1.0 (Dec 15 2025)
 
 - **fix**: Air pressure device MA10238 had wrong humidity key (error) [#40](https://github.com/CestLaGalere/mobilealerts/issues/40)
 - **fix**: Fix unit in rain flip counter from mm to none. Count history. Needed a separate sensor. [#41](https://github.com/CestLaGalere/mobilealerts/issues/41)
 - **feat**: Add sensor MA10250PRO in device list with existing sensors types [#40](https://github.com/CestLaGalere/mobilealerts/issues/40)
 - **feat**: Add sensor MA10410 weather station [#45](https://github.com/CestLaGalere/mobilealerts/issues/45)
+- **feat**: Add service `Dump Raw API Response` which can be called by user. The service dumps the raw json for all configured devices.
 - **chore**: Adapt readme.md with better log info and describe how to count the rain sensor (with use of Utility Meters)
 
 

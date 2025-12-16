@@ -1,17 +1,25 @@
 """Mobile Alerts integration."""
 
+import json
 import logging
+from datetime import datetime
+from typing import Any
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_DEVICE_ID, Platform
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers.typing import ConfigType
+import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.SENSOR]
+
+# Service schemas
+DUMP_RAW_RESPONSE_SCHEMA = vol.Schema({})
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -52,6 +60,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Listen for config entry updates
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
+    # Register services (only once per integration)
+    if DOMAIN not in hass.data or "services_registered" not in hass.data[DOMAIN]:
+        hass.data[DOMAIN]["services_registered"] = True
+        await _register_services(hass)
+
     return True
 
 
@@ -82,3 +95,42 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 
     # No migration needed yet
     return True
+
+
+async def _register_services(hass: HomeAssistant) -> None:
+    """Register Mobile Alerts services."""
+
+    async def handle_dump_raw_response(call: ServiceCall) -> dict[str, Any]:
+        """Service: Trigger coordinator refresh and return raw API response from all entries.
+
+        Returns data from all Mobile Alerts entries in a single response.
+        """
+        coordinators_by_entry = hass.data[DOMAIN].get("coordinators_by_entry", {})
+
+        if not coordinators_by_entry:
+            return {
+                "success": False,
+                "error": "No Mobile Alerts entries found",
+            }
+
+        # Trigger refresh and collect data from all entries
+        results = {}
+        for entry_id, coordinator in coordinators_by_entry.items():
+            await coordinator.async_request_refresh()
+            results[entry_id] = coordinator.data
+
+        return {
+            "success": True,
+            "timestamp": datetime.now().isoformat(),
+            "entries_count": len(results),
+            "data": results,
+        }
+
+    hass.services.async_register(
+        DOMAIN,
+        "dump_raw_response",
+        handle_dump_raw_response,
+        schema=DUMP_RAW_RESPONSE_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
+    )
+    _LOGGER.debug("Mobile Alerts: Services registered")

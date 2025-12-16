@@ -180,13 +180,7 @@ Based on the DataUpdateCoordinator and CoordinatorEntity classes
 
 see [https://developers.home-assistant.io/docs/integration_fetching_data/](https://developers.home-assistant.io/docs/integration_fetching_data/)
 
-raw data can be viewed using
-
-```
-curl -d "{'deviceids': 'XXXXXXXXXXXX'}" -H "Content-Type: application/json" https://www.data199.com/api/pv1/device/lastmeasurement
-```
-
-If you have a Mobile Alerts device that aren't supported yet (see [List of Supported Devices](docs/supported_devices.md) ), do:
+If you have a Mobile Alerts device or compatible device that isn't supported yet (see [List of Supported Devices](docs/supported_devices.md) ), do:
 
 1. Check the [Mobile Alerts website](https://mobile-alerts.eu) for the device model number
 2. Open an issue with:
@@ -199,36 +193,55 @@ You can find the list with the measurement keys for new devices as following:
 
 1. "add entry" and enter the device id as usual
 2. Open logs under "Settings --> System --> Logs and search for "(Error) Could not detect device model for device ...".
-3. Enter this error message into the opened issue.
+3. Enter this error message into the opened issue. Please mask the deviceid with "X".
 
-For other issues with a known device (addable), do the following:
-1. Change log level of HA to `info`. For this open `configuration.yaml` and add this:
-```yaml
-logger:
-  default: info
-```
-2. Restart HA
-3. You should see the API result of Mobile Alerts like this example:
+### Debugging with the Dump Raw Response Service
+
+For troubleshooting device detection issues or API response problems, use the built-in `mobile_alerts.dump_raw_response` service:
+
+**How to use:**
+1. Open **Developer Tools** in Home Assistant (click the menu icon in the top right)
+2. Select **Actions** tab
+3. Find and select `mobile_alerts: Dump Raw API Response`
+4. Click **Call Service**
+
+**What you get back:**
+The service returns the raw API response from Mobile Alerts for all your devices:
 ```json
 {
-  "devices": [
-    {
-      "deviceid": "XXXXXXXXXXXX",
-      "lastseen": 1765662669,
-      "lowbattery": false,
-      "measurement": {
-        "idx": 870953,
-        "ts": 1765662668,
-        "c": 1765662669,
-        "lb": false,
-        "t1": 23.3,
-        "h": 43.0,
-        "ap": 1026.7
-      }
+  "success": true,
+  "timestamp": "2025-12-15T22:05:30.123456",
+  "entries_count": 2,
+  "data": {
+    "01KCCRFDK1PK4KVVGB2TC404B5": {
+      "devices": [
+        {
+          "deviceid": "XXXXXXXXXXXX",
+          "lastseen": 1765662669,
+          "lowbattery": false,
+          "measurement": {
+            "idx": 870953,
+            "ts": 1765662668,
+            "c": 1765662669,
+            "lb": false,
+            "t1": 23.3,
+            "h": 43.0,
+            "ap": 1026.7
+          }
+        }
+      ]
     }
-  ]
+  }
 }
 ```
-4. Send this information to us as an issue. If you send us the real `deviceid` overright it later with `XXXX`.
 
-This information will help us add support for new devices in future versions of the integration.
+**How to help us with new devices:**
+If you discover a device that isn't recognized or has incorrect readings:
+1. Call the `mobile_alerts.dump_raw_response` service
+2. Copy the JSON response
+3. Create an issue and include:
+   - The device model (e.g., MA10238)
+   - The raw API response (with `deviceid` masked as `XXXXXXXXXXXX`)
+   - What you expected vs. what you got
+
+This information helps us add support for new device models in future versions.
