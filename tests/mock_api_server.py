@@ -23,8 +23,10 @@ Test Device IDs:
 - 090005AC99E1: MA10100
 - 090005AC99E2: MA10200
 - 090005AC99E3: MA10230
+- 090005AC99E4: MA10238
 - 107EEEB46F00: MA10300 (cable temperature)
 - 107EEEB46F02: MA10350 (water level) ← Ambiguous with MA10300
+- 150005AC99E5: MA10650 (rain gauge)
 - 1200099803A1: MA10800 (window contact)
 - 1200099803A2: MA10880 (wireless switch)
 """
@@ -88,6 +90,30 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
             "h30davg": 44.5,
         },
     },
+    "090005AC99E4": {
+        "name": "MA10238 - Air pressure Sensor",
+        "model": "MA10238",
+        "measurement": {
+            "idx": 230,
+            "ts": int(datetime.now().timestamp()),
+            "c": int(datetime.now().timestamp()) + 5,
+            "t1": 20.8,
+            "h": 48.0,
+            "ap": 1013.2,
+            "apcr1": 0.2,
+            "apcr2": 0.5,
+            "apcr3": 0.8,
+            "apcr4": 1.0,
+            "apcr5": 1.2,
+            "apcr6": 1.5,
+            "apcf1": 0.1,
+            "apcf2": 0.3,
+            "apcf3": 0.4,
+            "apcf4": 0.6,
+            "apcf5": 0.7,
+            "apcf6": 0.9,
+        },
+    },
     "107EEEB46F00": {
         "name": "MA10300 - Thermo-Hygrometer with Cable Sensor",
         "model": "MA10300",
@@ -122,6 +148,21 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
             "w": False,  # Window closed
             "wsct": True,  # Window sensor connected
             "wutt": True,  # Battery ok
+        },
+    },
+    "150005AC99E5": {
+        "name": "MA10650 - Wireless Rain Gauge",
+        "model": "MA10650",
+        "measurement": {
+            "idx": 29303,
+            "ts": int(datetime.now().timestamp()),
+            "c": int(datetime.now().timestamp()) + 5,
+            "lb": False,  # Low battery
+            "sc": True,  # Status change
+            "t1": 4.1,  # Temperature in celsius
+            "r": 254.646,  # Total rainfall in mm (never resets)
+            "rf": 987,  # Rain flip counter (never resets) - 1 flip = 0.258mm
+            "rr": 0.258,  # Rain rate in mm (this update interval)
         },
     },
     "1200099803A2": {

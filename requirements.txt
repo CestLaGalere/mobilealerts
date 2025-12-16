@@ -3,6 +3,10 @@ homeassistant>=2025.11.0
 pip>=25.2.0
 ruff==0.14.7
 
+# DNS resolution dependencies (compatibility fix)
+aiodns>=3.1.0
+pycares<5.0
+
 # Home Assistant default integration dependencies
 hassil>=3.0.0
 home-assistant-intents>=2025.11.0

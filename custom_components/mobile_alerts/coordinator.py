@@ -66,6 +66,7 @@ class MobileAlertsCoordinator(DataUpdateCoordinator):
                 self._is_initial_update,
             )
             result = await self._api.fetch_data(is_initial=self._is_initial_update)
+
             # After first update, switch to batch mode
             if self._is_initial_update:
                 self._is_initial_update = False

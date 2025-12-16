@@ -243,7 +243,10 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor):
 
 
 class MobileAlertsRainSensor(MobileAlertsSensor):
-    """Implementation of a Mobile Alerts rain sensor."""
+    """Implementation of a Mobile Alerts rain sensor (r measurement).
+
+    The 'r' sensor measures the total amount of rain in mm/cm/in since start of counting.
+    """
 
     def __init__(
         self,
@@ -259,7 +262,7 @@ class MobileAlertsRainSensor(MobileAlertsSensor):
             key=SensorDeviceClass.PRECIPITATION,
             translation_key="rain",
             device_class=SensorDeviceClass.PRECIPITATION,
-            state_class=SensorStateClass.MEASUREMENT,
+            state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfLength.MILLIMETERS,
         )
 
@@ -269,6 +272,49 @@ class MobileAlertsRainSensor(MobileAlertsSensor):
         try:
             return cast(float, self._attr_native_value)
         except ValueError:
+            _LOGGER.warning(
+                "Invalid value for entity %s: %s",
+                self.entity_id,
+                self._attr_native_value,
+            )
+            return None
+
+
+class MobileAlertsRainFlowSensor(MobileAlertsSensor):
+    """Implementation of a Mobile Alerts rain flow sensor (rf measurement).
+
+    The 'rf' sensor is a counter that increments every 0.258 mm of rain since start of counting.
+    Formula: r = rf × 0.258 (where r is in mm)
+    This sensor has NO unit - it's just a counter value.
+    """
+
+    def __init__(
+        self,
+        coordinator: MobileAlertsCoordinator,
+        device: dict[str, str],
+        device_info: DeviceInfo,
+    ) -> None:
+        """Initialize the rain flow sensor."""
+        super().__init__(coordinator, device=device, device_info=device_info)
+        self._device_class = None  # No device class for counter
+        self._attr_native_unit_of_measurement = None  # No unit - it's just a counter
+        self.entity_description = SensorEntityDescription(
+            key="rain_flips",
+            translation_key="rain_flips",
+            device_class=None,
+            state_class=SensorStateClass.TOTAL_INCREASING,  # Counter that only increases
+            native_unit_of_measurement=None,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the value reported by the sensor."""
+        try:
+            if self._attr_native_value is None:
+                return None
+            # Convert to int since it's a counter
+            return int(cast(int | float | str, self._attr_native_value))
+        except (ValueError, TypeError):
             _LOGGER.warning(
                 "Invalid value for entity %s: %s",
                 self.entity_id,

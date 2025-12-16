@@ -82,8 +82,8 @@ see [https://mobile-alerts.eu/info/public_server_api_documentation.pdf](https://
 | h2      | The measured humidity of humidity sensor 2.                                                                                                                                  |
 | h3      | The measured humidity of humidity sensor 3.                                                                                                                                  |
 | h4      | The measured humidity of humidity sensor 4.                                                                                                                                  |
-| r       | The rain value in mm. 0.258 mm of rain are equal to one flip.                                                                                                                |
-| rf      | The flip count of the rain sensor. A flip equals 0.258 mm of rain.                                                                                                           |
+| r       | **The rain value in mm (total counter - never resets).** 0.258 mm of rain are equal to one flip. To track rainfall per hour/day/month/year, use Utility Meter (see below). |
+| rf      | **The flip count of the rain sensor (total counter - never resets).** A flip equals 0.258 mm of rain. To track rainfall per hour/day/month/year, use Utility Meter (see below). |
 | ws      | The measured windspeed in m/s.                                                                                                                                               |
 | wg      | The measured gust in m/s.                                                                                                                                                    |
 | wd      | The wind direction. 0: N, 1: NNE, 2: NE, 3: ENE, 4: E, 5: ESE, 6: SE, 7: SSE, 8: S, 9: SSW, 10: SW, 11: WSW, 12: W, 13: WNW, 14: NW, 15: NNW. Direction degrees = wd \* 22.5 |
@@ -104,6 +104,65 @@ see [https://mobile-alerts.eu/info/public_server_api_documentation.pdf](https://
 | ap      | The measured air pressure in hPa.                                                                                                                                            |
 | water   | water presence sensor (t2 of MA10350)                                                                                                                                        |
 
+## Measuring Rainfall Per Period (Hourly, Daily, Monthly, Yearly)
+
+The rain sensors (`r` and `rf`) report **total cumulative values** that never reset. To track rainfall for specific periods (hourly, daily, monthly, yearly), use Home Assistant's built-in **Utility Meter** integration.
+
+### Using Utility Meter
+
+The Utility Meter integration converts total counters into period-based measurements automatically.
+
+#### Via YAML Configuration
+
+Add this to your `configuration.yaml`:
+
+```yaml
+utility_meter:
+  rain_hourly:
+    source: sensor.rain_rain_quantity_total        # Your rain sensor entity
+    cycle: hourly
+    unit_of_measurement: mm
+
+  rain_daily:
+    source: sensor.rain_rain_quantity_total
+    cycle: daily
+    unit_of_measurement: mm
+
+  rain_monthly:
+    source: sensor.rain_rain_quantity_total
+    cycle: monthly
+    unit_of_measurement: mm
+
+  rain_yearly:
+    source: sensor.rain_rain_quantity_total
+    cycle: yearly
+    unit_of_measurement: mm
+```
+
+Replace `sensor.rain_rain_quantity_total` with your actual rain sensor entity ID.
+
+#### Via UI (Recommended)
+
+1. Go to **Settings → Automations & Scenes → Helpers**
+2. Click **Create Helper → Utility Meter**
+3. Select the rain sensor as source
+4. Set cycle to "Hourly" (or Daily/Monthly/Yearly)
+5. Click **Create**
+
+Repeat for each time period you need.
+
+### Example
+
+After creating the Utility Meter helpers, you'll have new entities:
+- `utility_meter.rain_hourly` - Rainfall in the current hour (mm)
+- `utility_meter.rain_daily` - Rainfall in the current day (mm)
+- `utility_meter.rain_monthly` - Rainfall in the current month (mm)
+- `utility_meter.rain_yearly` - Rainfall in the current year (mm)
+
+These values **reset at the period boundary** (hour, day, month, year) and show only the rainfall for that specific period.
+
+For more information, see the [Home Assistant Utility Meter Documentation](https://www.home-assistant.io/integrations/utility_meter/).
+
 ## Migration YAML verison to UI Version
 
 Unfortunately we can't migration the ymal configuration entries automatically. But it's very ease to migrate manually. The entity names remain unchanged.
@@ -121,13 +180,7 @@ Based on the DataUpdateCoordinator and CoordinatorEntity classes
 
 see [https://developers.home-assistant.io/docs/integration_fetching_data/](https://developers.home-assistant.io/docs/integration_fetching_data/)
 
-raw data can be viewed using
-
-```
-curl -d "{'deviceids': 'XXXXXXXXXXXX'}" -H "Content-Type: application/json" https://www.data199.com/api/pv1/device/lastmeasurement
-```
-
-If you have a Mobile Alerts device that aren't supported yet (see [List of Supported Devices](docs/supported_devices.md) ), do:
+If you have a Mobile Alerts device or compatible device that isn't supported yet (see [List of Supported Devices](docs/supported_devices.md) ), do:
 
 1. Check the [Mobile Alerts website](https://mobile-alerts.eu) for the device model number
 2. Open an issue with:
@@ -136,10 +189,59 @@ If you have a Mobile Alerts device that aren't supported yet (see [List of Suppo
    - List of measurement keys it provides
    - Device description
 
-You can find the list with the measurement keys as following:
+You can find the list with the measurement keys for new devices as following:
 
 1. "add entry" and enter the device id as usual
-2. Open logs under "Settings --> System --> Logs and search for "(Error) Could not detect device model for device ..." or check "homeassistant.log" with Studio Code Server.
-3. Enter this error message into the opened issue.
+2. Open logs under "Settings --> System --> Logs and search for "(Error) Could not detect device model for device ...".
+3. Enter this error message into the opened issue. Please mask the deviceid with "X".
 
-This information will help us add support for new devices in future versions of the integration.
+### Debugging with the Dump Raw Response Service
+
+For troubleshooting device detection issues or API response problems, use the built-in `mobile_alerts.dump_raw_response` service:
+
+**How to use:**
+1. Open **Developer Tools** in Home Assistant (click the menu icon in the top right)
+2. Select **Actions** tab
+3. Find and select `mobile_alerts: Dump Raw API Response`
+4. Click **Call Service**
+
+**What you get back:**
+The service returns the raw API response from Mobile Alerts for all your devices:
+```json
+{
+  "success": true,
+  "timestamp": "2025-12-15T22:05:30.123456",
+  "entries_count": 2,
+  "data": {
+    "01KCCRFDK1PK4KVVGB2TC404B5": {
+      "devices": [
+        {
+          "deviceid": "XXXXXXXXXXXX",
+          "lastseen": 1765662669,
+          "lowbattery": false,
+          "measurement": {
+            "idx": 870953,
+            "ts": 1765662668,
+            "c": 1765662669,
+            "lb": false,
+            "t1": 23.3,
+            "h": 43.0,
+            "ap": 1026.7
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+**How to help us with new devices:**
+If you discover a device that isn't recognized or has incorrect readings:
+1. Call the `mobile_alerts.dump_raw_response` service
+2. Copy the JSON response
+3. Create an issue and include:
+   - The device model (e.g., MA10238)
+   - The raw API response (with `deviceid` masked as `XXXXXXXXXXXX`)
+   - What you expected vs. what you got
+
+This information helps us add support for new device models in future versions.

@@ -43,7 +43,10 @@
         "name": "Externe Luftfeuchte"
       },
       "rain": {
-        "name": "Regen"
+        "name": "Regenmenge total"
+      },
+      "rain_flips": {
+        "name": "Regenzähler total"
       },
       "wind_speed": {
         "name": "Windgeschwindigkeit"

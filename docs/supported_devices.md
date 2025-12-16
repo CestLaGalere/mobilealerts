@@ -19,11 +19,12 @@ This document lists all Mobile Alerts devices supported by this Home Assistant i
 
 ### Thermo-Hygrometers
 
-| Model   | Name                          | Measurement Keys | Description              |
-| ------- | ----------------------------- | ---------------- | ------------------------ |
-| MA10200 | Wireless Thermo-Hygrometer    | `t1`, `h1`       | Temperature and humidity |
-| MA10230 | Wireless Room Climate Station | `t1`, `h1`       | Room climate monitoring  |
-| MA10241 | Wireless Thermo-Hygrometer    | `t1`, `h1`       | Temperature and humidity |
+| Model      | Name                          | Measurement Keys | Description              |
+| ---------- | ----------------------------- | ---------------- | ------------------------ |
+| MA10200    | Wireless Thermo-Hygrometer    | `t1`, `h`       | Temperature and humidity |
+| MA10230    | Wireless Room Climate Station | `t1`, `h`       | Room climate monitoring  |
+| MA10241    | Wireless Thermo-Hygrometer    | `t1`, `h`       | Temperature and humidity |
+| MA10250PRO | Wireless Thermo-Hygrometer    | `t1`, `h`       | Temperature and humidity |
 
 ### Thermo-Hygrometers with Cable Sensor
 
@@ -37,7 +38,7 @@ This document lists all Mobile Alerts devices supported by this Home Assistant i
 
 | Model   | Name                          | Measurement Keys | Description                             |
 | ------- | ----------------------------- | ---------------- | --------------------------------------- |
-| MA10238 | Wireless Air Pressure Monitor | `t1`, `h1`, `ap` | Temperature, humidity, and air pressure |
+| MA10238 | Wireless Air Pressure Monitor | `t1`, `h`, `ap` | Temperature, humidity, and air pressure |
 
 ### Special Sensors
 

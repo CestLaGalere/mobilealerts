@@ -114,8 +114,10 @@ The mock server provides these test devices:
 | `090005AC99E1` | MA10100 | Thermometer                         | t1                               |
 | `090005AC99E2` | MA10300 | Thermo-Hygrometer                   | t1,t2,h                          |
 | `090005AC99E3` | MA10230 | Room Climate Station                | Many keys + averages             |
+| `090005AC99E4` | MA10238 | Air Pressure Station                | t1, h, ap                        |
 | `107EEEB46F00` | MA10300 | Thermo-Hygrometer with Cable Sensor | t2 = cable temp                  |
 | `107EEEB46F02` | MA10350 | Water Detector                      | **Ambiguous** - t2 = water level |
+| `150005AC99E5` | MA10650 | Wireless Rain Gauge                 | Rain sensors (r, rf, rr)         |
 | `1200099803A1` | MA10800 | Window/Door Contact                 | Boolean sensor                   |
 | `1200099803A2` | MA10880 | Wireless Switch                     | Key press events                 |
 
@@ -302,7 +304,27 @@ bash scripts/start-ha.sh
    - ✅ Creates Binary Sensor (Contact) for `w` key
    - ✅ Shows as "Open/Closed" in UI
 
-### Test 4: Sensor Type Override
+### Test 4: Rain Gauge with Total Counters
+
+**Goal:** Verify rain gauge sensors and understand total counters
+
+1. Add `150005AC99E5` (MA10650 - Rain Gauge)
+   - ✅ Should be detected as MA10650
+   - ✅ Creates three sensors:
+     - `sensor.rain_temperature_t1` - Temperature (4.1°C)
+     - `sensor.rain_rain_quantity_total` - **Total rainfall in mm (never resets)**
+     - `sensor.rain_rain_counter_total` - **Total flip count (never resets)**
+
+2. Understand the data:
+   - `r` = 254.646 mm (Total since device was installed)
+   - `rf` = 987 (Total flips since device was installed, 1 flip = 0.258 mm)
+   - `rr` = 0.258 (Rain rate in current interval - may vary)
+
+3. **Important:** These are cumulative totals that never reset!
+   - To measure rainfall per hour/day/month/year, use **Utility Meter** (see README)
+   - Utility Meter will automatically calculate differences from these total values
+
+### Test 5: Sensor Type Override
 
 **Goal:** Verify MA10350 uses WaterSensor for t2 (not TemperatureSensor)
 

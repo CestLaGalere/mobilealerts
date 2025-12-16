@@ -55,7 +55,7 @@ DEVICE_MODELS: Final = {
     "MA10238": {
         "name": "MA 10238",
         "display_name": "Wireless Air Pressure Monitor",
-        "measurement_keys": {"t1", "h1", "ap"},
+        "measurement_keys": {"t1", "h", "ap"},
         "description": "Temperature, humidity, and air pressure",
     },
     "MA10241": {
@@ -85,6 +85,12 @@ DEVICE_MODELS: Final = {
         "display_name": "Wireless CO2 Monitor",
         "measurement_keys": {"t1", "t2", "h", "ppm"},
         "description": "Temperature, humidity, and CO2 monitoring",
+    },
+    "MA10410": {
+        "name": "MA 10410",
+        "display_name": "Weather Station",
+        "measurement_keys": {"t1", "t2", "h", "h2"},
+        "description": "Temperature indoor, humidity indoor, temperature outdoor, humidity outdoor",
     },
     "MA10450": {
         "name": "MA 10450",
