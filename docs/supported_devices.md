@@ -28,11 +28,12 @@ This document lists all Mobile Alerts devices supported by this Home Assistant i
 
 ### Thermo-Hygrometers with Cable Sensor
 
-| Model             | Name                                           | Measurement Keys | Description                                                              |
-| ----------------- | ---------------------------------------------- | ---------------- | ------------------------------------------------------------------------ |
-| MA10300 / MA10320 | Wireless Thermo-Hygrometer with Cable Sensor   | `t1`, `t2`, `h1` | Temperature (internal/cable) and humidity                                |
-| MA10350           | Wireless Thermo-Hygrometer with Water Detector | `t1`, `t2`, `h1` | Temperature, humidity, and water detection (t2 indicates water presence) |
-| MA10700           | Wireless Thermo-Hygrometer with Pool Sensor    | `t1`, `h1`, `t2` | Temperature, humidity, and pool temperature                              |
+| Model             | Name                                           | Measurement Keys       | Description                                                              |
+| ----------------- | ---------------------------------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| MA10300 / MA10320 | Wireless Thermo-Hygrometer with Cable Sensor   | `t1`, `t2`, `h1`       | Temperature (internal/cable) and humidity                                |
+| MA10350           | Wireless Thermo-Hygrometer with Water Detector | `t1`, `t2`, `h1`       | Temperature, humidity, and water detection (t2 indicates water presence) |
+| MA10410           | Wheater station Thermo-Hygrometer (wirless)    | `t1`, `t2`, `h1`, `h2` | Temperature, humidity, and water detection (t2 indicates water presence) |
+| MA10700           | Wireless Thermo-Hygrometer with Pool Sensor    | `t1`, `h1`, `t2`       | Temperature, humidity, and pool temperature                              |
 
 ### Thermo-Hygrometer with Air Pressure
 

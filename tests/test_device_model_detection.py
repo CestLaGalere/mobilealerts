@@ -250,6 +250,38 @@ class TestDeviceModelDetection:
             "kp4c",
         }
 
+    def test_tfa_30_3060_01_klima_home(self):
+        """Test detection of TFA KLIMA@HOME 30.3060.01 - Thermo-Hygrometer with 3 sensors."""
+        measurement = {
+            "ts": 1704067200,
+            "idx": "123ABC456",
+            "c": 0,
+            "lb": False,
+            "t1": 21.5,
+            "t2": 18.3,
+            "t3": 22.1,
+            "t4": 19.8,
+            "h1": 55.0,
+            "h2": 48.5,
+            "h3": 52.3,
+            "h4": 60.1,
+        }
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        model_id, model_info = result[0]
+        assert model_id == "TFA_30.3060.01:IT"
+        assert model_info["measurement_keys"] == {
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+        }
+        assert model_info["display_name"] == "Wireless Thermo-Hygrometer with 3 sensors"
+
     def test_empty_measurement(self):
         """Test that empty measurement returns empty list."""
         result = find_all_matching_models({})

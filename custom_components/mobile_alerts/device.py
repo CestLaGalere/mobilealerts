@@ -137,6 +137,12 @@ DEVICE_MODELS: Final = {
         },
         "description": "4-channel wireless switch with key press monitoring",
     },
+    "TFA_30.3060.01:IT": {
+        "name": "TFA KLIMA@HOME 30.3060.01",
+        "display_name": "Wireless Thermo-Hygrometer with 3 sensors",
+        "measurement_keys": {"t1", "t2", "t3", "t4", "h1", "h2", "h3", "h4"},
+        "description": "Temperature, humidity 1 internal sensor and up to 3 external sensors",
+    },
     # MA10870 (Voltage Monitor) - measurement keys unknown, excluded from detection
 }
 

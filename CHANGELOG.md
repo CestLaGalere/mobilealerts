@@ -2,6 +2,12 @@
 
 [Back](./README.md)
 
+## v.2.2.0 ()
+
+- **feat**: Add device KLIMA@HOME 30.3060 from TFA (based on Mobile Alerts)
+- **chore**: Add button installation decription in readme
+-
+
 ## v2.1.0 (Dec 15 2025)
 
 - **fix**: Air pressure device MA10238 had wrong humidity key (error) [#40](https://github.com/CestLaGalere/mobilealerts/issues/40)
