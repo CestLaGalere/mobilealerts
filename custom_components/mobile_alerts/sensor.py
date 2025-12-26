@@ -351,20 +351,22 @@ async def async_setup_entry(
         model_info = DEVICE_MODELS.get(model_id, {})
         display_name = model_info.get("display_name", model_id)
         measurement_keys = model_info.get("measurement_keys", set())
+        manufacturer = model_info.get("manufacturer", "Mobile Alerts")
 
         _LOGGER.debug(
-            "Got model_info for %s (model_id=%s): display_name=%s, measurement_keys=%s",
+            "Got model_info for %s (model_id=%s): display_name=%s, measurement_keys=%s, manufacturer=%s",
             device_id,
             model_id,
             display_name,
             measurement_keys,
+            manufacturer,
         )
 
         # Create DeviceInfo with model information
         device_info = DeviceInfo(
             identifiers={(DOMAIN, device_id)},
             name=device_name,
-            manufacturer="Mobile Alerts",
+            manufacturer=manufacturer,
             model=f"{model_id} - {display_name}",  # Now shows "MA10300 - Wireless Thermo-Hygrometer"
             serial_number=device_id,
         )

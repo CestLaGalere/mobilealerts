@@ -11,7 +11,12 @@ integrates home assistant to the mobilealerts sensor reading service
 see [Version History](ReleaseHistory.md)
 
 ## Installation
+You need to have Home Assistant Community Store (HACS) installed. If you don't have installed HACS yet, read their [documentation](https://www.hacs.xyz/docs/use/).
 
+### Via quick link button
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=CestLaGalere&repository=mobilealerts&category=integration)
+
+### Manually via HACS
 To install this integration you will need to add this as a custom repository in HACS.
 Open HACS page, then click integrations
 Click the three dots top right, select Custom repositories

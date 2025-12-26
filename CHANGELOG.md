@@ -2,6 +2,14 @@
 
 [Back](./README.md)
 
+## v.2.2.0 (Dec 26 2025)
+
+- **feat**: Add device TFA Dostmann KLIMA@HOME 30.3060 (based on Mobile Alerts), issue [44](https://github.com/CestLaGalere/mobilealerts/issues/44)
+- **feat**: Add device TFA Dostmann Temperature/Humidity Transmitter for WEATHERHUB 30.3303 (based on Mobile Alerts), issue [47](https://github.com/CestLaGalere/mobilealerts/issues/47)
+- **chore**: Add button installation description in readme
+- **chore**: Show correct manufacturer on device info page, either "Mobile Alerts" or "TFA Dostmann"
+- **fix**: Option Symbol (option flow) removed, threw an error 500 (internal server error), issue [47](https://github.com/CestLaGalere/mobilealerts/issues/47)
+
 ## v2.1.0 (Dec 15 2025)
 
 - **fix**: Air pressure device MA10238 had wrong humidity key (error) [#40](https://github.com/CestLaGalere/mobilealerts/issues/40)
