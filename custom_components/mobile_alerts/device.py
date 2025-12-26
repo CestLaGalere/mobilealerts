@@ -138,10 +138,16 @@ DEVICE_MODELS: Final = {
         "description": "4-channel wireless switch with key press monitoring",
     },
     "TFA_30.3060.01:IT": {
-        "name": "TFA KLIMA@HOME 30.3060.01",
+        "name": "TFA Dostmann KLIMA@HOME 30.3060.01",
         "display_name": "Wireless Thermo-Hygrometer with 3 sensors",
         "measurement_keys": {"t1", "t2", "t3", "t4", "h1", "h2", "h3", "h4"},
         "description": "Temperature, humidity 1 internal sensor and up to 3 external sensors",
+    },
+    "TFA_30.3303.02": {
+        "name": "TFA Dostmann Temperature/Humidity Transmitter WEATHERHUB",
+        "display_name": "TFA Dostmann Thermo-Hygrometer Transmitter for WEATHERHUB",
+        "measurement_keys": {"t1", "h"},
+        "description": "Wireless temperature and humidity transmitter for WEATHERHUB system",
     },
     # MA10870 (Voltage Monitor) - measurement keys unknown, excluded from detection
 }
@@ -344,7 +350,7 @@ class MobileAlertsDevice:
         return DeviceInfo(
             identifiers=identifiers,
             name=self.name,
-            manufacturer="Mobile Alerts",
+            manufacturer="Mobile Alerts / TFA Dostmann",
             model=self.device_type,
         )
 

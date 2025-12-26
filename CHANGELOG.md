@@ -4,9 +4,10 @@
 
 ## v.2.2.0 ()
 
-- **feat**: Add device KLIMA@HOME 30.3060 from TFA (based on Mobile Alerts)
+- **feat**: Add device TFA Dostmann KLIMA@HOME 30.3060 (based on Mobile Alerts), issue
+- **feat**: Add device TFA Dostmann Temperature/Humidity Transmitter for WEATERHUB 30.3303 (based on Mobile Alerts), issue [47](https://github.com/CestLaGalere/mobilealerts/issues/47)
 - **chore**: Add button installation decription in readme
--
+- **fix**: Option Symbol (option flow) removed, threw an error 500 (internal server error), issue [47](https://github.com/CestLaGalere/mobilealerts/issues/47)
 
 ## v2.1.0 (Dec 15 2025)
 
