@@ -2,7 +2,7 @@
 
 This document lists all Mobile Alerts devices supported by this Home Assistant integration. The integration automatically detects the device model based on the measurement data received from the API.
 
-## Device Models
+## Mobile Alerts Devices
 
 ### Temperature Sensors
 
@@ -28,12 +28,12 @@ This document lists all Mobile Alerts devices supported by this Home Assistant i
 
 ### Thermo-Hygrometers with Cable Sensor
 
-| Model             | Name                                           | Measurement Keys       | Description                                                              |
-| ----------------- | ---------------------------------------------- | ---------------------- | ------------------------------------------------------------------------ |
-| MA10300 / MA10320 | Wireless Thermo-Hygrometer with Cable Sensor   | `t1`, `t2`, `h1`       | Temperature (internal/cable) and humidity                                |
-| MA10350           | Wireless Thermo-Hygrometer with Water Detector | `t1`, `t2`, `h1`       | Temperature, humidity, and water detection (t2 indicates water presence) |
-| MA10410           | Wheater station Thermo-Hygrometer (wirless)    | `t1`, `t2`, `h1`, `h2` | Temperature, humidity, and water detection (t2 indicates water presence) |
-| MA10700           | Wireless Thermo-Hygrometer with Pool Sensor    | `t1`, `h1`, `t2`       | Temperature, humidity, and pool temperature                              |
+| Model             | Name                                           | Measurement Keys        | Description                                                                |
+| ----------------- | ---------------------------------------------- | ----------------------- | -------------------------------------------------------------------------- |
+| MA10300 / MA10320 | Wireless Thermo-Hygrometer with Cable Sensor   | `t1`, `t2`, `h1`        | Temperature (internal/cable) and humidity                                  |
+| MA10350           | Wireless Thermo-Hygrometer with Water Detector | `t1`, `t2`, `h1`        | Temperature, humidity, and water detection (t2 indicates water presence)   |
+| MA10410           | Wheater station Thermo-Hygrometer (wireless)   | `t1`, `t2`, `h1`, `h2`  |Temperature indoor, humidity indoor, temperature outdoor, humidity outdoor  |
+| MA10700           | Wireless Thermo-Hygrometer with Pool Sensor    | `t1`, `h1`, `t2`        | Temperature, humidity, and pool temperature                                |
 
 ### Thermo-Hygrometer with Air Pressure
 
@@ -70,6 +70,17 @@ This document lists all Mobile Alerts devices supported by this Home Assistant i
 | Model   | Name            | Measurement Keys                                               | Description                                         |
 | ------- | --------------- | -------------------------------------------------------------- | --------------------------------------------------- |
 | MA10880 | Wireless Switch | `kp1t`, `kp1c`, `kp2t`, `kp2c`, `kp3t`, `kp3c`, `kp4t`, `kp4c` | 4-channel wireless switch with key press monitoring |
+
+## TFA Dostmann Devices
+
+TFA Dostmann manufactures devices that use the same Mobile Alerts API and sensor technology. These devices are listed separately to distinguish them from the Mobile Alerts branded products.
+
+### TFA Thermo-Hygrometers
+
+| Model          | Name                                                              | Measurement Keys                           | Description                                            |
+| -------------- | ----------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| TFA 30.3060.01 | TFA Dostmann KLIMA@HOME Thermo-Hygrometer with 3 sensors           | `t1`, `t2`, `t3`, `t4`, `h1`, `h2`, `h3`, `h4` | 1 internal + 3 external sensors for temperature/humidity |
+| TFA 30.3303.02 | TFA Dostmann Thermo-Hygrometer Transmitter for WEATHERHUB          | `t1`, `h`                                  | Wireless temperature and humidity transmitter          |
 
 ## Measurement Key Reference
 

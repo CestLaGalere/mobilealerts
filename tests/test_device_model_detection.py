@@ -6,11 +6,35 @@ from custom_components.mobile_alerts.device import (
 )
 
 
+def find_model_by_id(
+    result: list[tuple[str, dict]], expected_model_id: str
+) -> tuple[str, dict]:
+    """Helper to find a specific model in results.
+
+    Args:
+        result: List of (model_id, model_info) tuples from find_all_matching_models
+        expected_model_id: The model ID to search for
+
+    Returns:
+        The (model_id, model_info) tuple for the expected model
+
+    Raises:
+        AssertionError: If expected model is not found
+    """
+    model = next((m for m in result if m[0] == expected_model_id), None)
+    assert model is not None, (
+        f"Expected model {expected_model_id} not found. "
+        f"Found models: {[m[0] for m in result]}"
+    )
+    return model
+
+
 class TestDeviceModelDetection:
     """Test device model detection from measurement data."""
 
     def test_ma10100_thermometer(self):
         """Test detection of MA10100 - Wireless Thermometer."""
+        expected_model_id = "MA10100"
         measurement = {
             "t1": 22.5,
             "ts": 1704067200,
@@ -22,12 +46,13 @@ class TestDeviceModelDetection:
         assert len(result) > 0, "Should find at least one matching model"
         # Could match MA10100, MA10120 (both have only t1)
         model_ids = [model_id for model_id, _ in result]
-        assert "MA10100" in model_ids or "MA10120" in model_ids
-        model_id, model_info = result[0]
+        assert expected_model_id in model_ids or "MA10120" in model_ids
+        model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1"}
 
     def test_ma10101_thermometer_with_cable(self):
         """Test detection of MA10101 - Thermometer with cable sensor."""
+        expected_model_id = "MA10101"
         measurement = {
             "t1": 22.5,
             "t2": 18.3,
@@ -38,12 +63,12 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        # Could match MA10101 - exact match
-        assert model_id == "MA10101"
+        model_id, model_info = find_model_by_id(result, expected_model_id)
+        assert model_info["measurement_keys"] == {"t1", "t2"}
 
     def test_ma10200_thermo_hygro(self):
         """Test detection of MA10200 - Thermo-Hygrometer."""
+        expected_model_id = "MA10200"
         measurement = {
             "t1": 22.5,
             "h": 65.0,
@@ -54,12 +79,12 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        # Could match MA10200, MA10241 (both have t1, h)
-        model_ids = [model_id for model_id, _ in result]
-        assert any(m in model_ids for m in ["MA10200", "MA10241"])
+        model_id, model_info = find_model_by_id(result, expected_model_id)
+        assert model_info["measurement_keys"] == {"t1", "h"}
 
     def test_ma10238_air_pressure_monitor(self):
         """Test detection of MA10238 - Air pressure monitor."""
+        expected_model_id = "MA10238"
         measurement = {
             "t1": 22.5,
             "h": 65.0,
@@ -71,8 +96,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        assert model_id == "MA10238"
+        model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1", "h", "ap"}
 
     def test_ma10230_room_climate_station_with_h_key(self):
@@ -98,10 +122,32 @@ class TestDeviceModelDetection:
             "h30davg": 40.0,
         }
         result = find_all_matching_models(measurement)
+
+    def test_ma10230_room_climate_station_with_h_key(self):
+        """Test detection of MA10230 - Room Climate Station with 'h' key.
+
+        Real-world case where device sends t1 and h (not h1).
+        Device has many additional keys (h3havg, h24havg, h7davg, h30davg)
+        which are averages and should be ignored.
+
+        Should match MA10230 (t1, h, averages), NOT MA10100 (t1 only).
+        """
+        expected_model_id = "MA10230"
+        measurement = {
+            "t1": 22.5,
+            "h": 65.0,
+            "h3havg": 64.5,
+            "h24havg": 63.8,
+            "h7davg": 64.2,
+            "h30davg": 64.0,
+            "ts": 1704067200,
+            "idx": "0E7EA4A71203",
+            "c": 0,
+            "lb": False,
+        }
+        result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        # Should match MA10230 (t1, h, averages), not MA10100 (t1 only)
-        assert model_id == "MA10230", f"Expected MA10230 but got {model_id}"
+        model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {
             "t1",
             "h",
@@ -136,9 +182,10 @@ class TestDeviceModelDetection:
 
     def test_ma10350_thermo_hygro_water(self):
         """Test detection of MA10350 - Thermo-Hygrometer with water detector."""
+        expected_model_id = "MA10350"
         measurement = {
             "t1": 22.5,
-            "h1": 65.0,
+            "h": 65.0,
             "t2": 1,  # Water detection flag
             "ts": 1704067200,
             "idx": "0E7EA4A71203",
@@ -147,13 +194,12 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        # Could match MA10700 which has t1, h1, t2
-        assert model_id == "MA10700"
-        assert model_info["measurement_keys"] == {"t1", "t2", "h1"}
+        model_id, model_info = find_model_by_id(result, expected_model_id)
+        assert model_info["measurement_keys"] == {"t1", "t2", "h"}
 
     def test_ma10650_rain_gauge(self):
         """Test detection of MA10650 - Rain gauge."""
+        expected_model_id = "MA10650"
         measurement = {
             "t1": 22.5,
             "r": 12.5,
@@ -165,12 +211,12 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        assert model_id == "MA10650"
+        model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1", "r", "rf"}
 
     def test_ma10660_anemometer(self):
         """Test detection of MA10660 - Anemometer."""
+        expected_model_id = "MA10660"
         measurement = {
             "ws": 5.2,
             "wg": 8.5,
@@ -182,12 +228,12 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        assert model_id == "MA10660"
+        model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"ws", "wg", "wd"}
 
     def test_ma10800_contact_sensor(self):
         """Test detection of MA10800 - Contact sensor."""
+        expected_model_id = "MA10800"
         measurement = {
             "w": 0,
             "ts": 1704067200,
@@ -197,12 +243,12 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        assert model_id == "MA10800"
+        model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"w"}
 
     def test_ma10402_co2_monitor(self):
         """Test detection of MA10402 - CO2 Monitor."""
+        expected_model_id = "MA10402"
         measurement = {
             "ts": 1704067200,
             "idx": "0E7EA4A71203",
@@ -215,12 +261,12 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        assert model_id == "MA10402"
+        model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1", "t2", "h", "ppm"}
 
     def test_ma10880_switch(self):
         """Test detection of MA10880 - Wireless switch."""
+        expected_model_id = "MA10880"
         measurement = {
             "kp1t": 1,
             "kp1c": 5,
@@ -237,8 +283,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        assert model_id == "MA10880"
+        model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {
             "kp1t",
             "kp1c",
@@ -252,6 +297,7 @@ class TestDeviceModelDetection:
 
     def test_tfa_30_3060_01_klima_home(self):
         """Test detection of TFA KLIMA@HOME 30.3060.01 - Thermo-Hygrometer with 3 sensors."""
+        expected_model_id = "TFA_30.3060.01:IT"
         measurement = {
             "ts": 1704067200,
             "idx": "123ABC456",
@@ -268,8 +314,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = result[0]
-        assert model_id == "TFA_30.3060.01:IT"
+        model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {
             "t1",
             "t2",
@@ -283,6 +328,31 @@ class TestDeviceModelDetection:
         assert (
             model_info["display_name"]
             == "TFA Dostmann KLIMA@HOME Thermo-Hygrometer with 3 sensors"
+        )
+
+    def test_tfa_30_3303_02(self):
+        """Test detection of TFA 30.3303.02 - Thermo-Hygrometer Transmitter for WEATHERHUB."""
+        expected_model_id = "TFA_30.3303.02"
+        measurement = {
+            "ts": 1704067200,
+            "idx": "123ABC556",
+            "c": 0,
+            "lb": False,
+            "t1": 21.5,
+            "h": 55.0,
+        }
+        result = find_all_matching_models(measurement)
+        assert len(result) > 0
+        # Multiple models may have the same keys (t1, h): MA10200 and TFA_30.3303.02
+        # We specifically look for the TFA model
+        model_id, model_info = find_model_by_id(result, expected_model_id)
+        assert model_info["measurement_keys"] == {
+            "t1",
+            "h",
+        }
+        assert (
+            model_info["display_name"]
+            == "TFA Dostmann Thermo-Hygrometer Transmitter for WEATHERHUB"
         )
 
     def test_empty_measurement(self):
