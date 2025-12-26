@@ -27,48 +27,56 @@ DEVICE_MODELS: Final = {
         "display_name": "Wireless Thermometer",
         "measurement_keys": {"t1"},
         "description": "Temperature sensor",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10101": {
         "name": "MA 10101",
         "display_name": "Wireless Thermometer with Cable Sensor",
         "measurement_keys": {"t1", "t2"},
         "description": "Internal and external temperature",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10120": {
         "name": "MA 10120",
         "display_name": "Wireless Thermometer",
         "measurement_keys": {"t1"},
         "description": "Temperature sensor",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10200": {
         "name": "MA 10200",
         "display_name": "Wireless Thermo-Hygrometer",
         "measurement_keys": {"t1", "h"},
         "description": "Temperature and humidity",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10230": {
         "name": "MA 10230",
         "display_name": "Wireless Room Climate Station",
         "measurement_keys": {"t1", "h", "h3havg", "h24havg", "h7davg", "h30davg"},
         "description": "Temperature and humidity",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10238": {
         "name": "MA 10238",
         "display_name": "Wireless Air Pressure Monitor",
         "measurement_keys": {"t1", "h", "ap"},
         "description": "Temperature, humidity, and air pressure",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10241": {
         "name": "MA 10241",
         "display_name": "Wireless Thermo-Hygrometer",
         "measurement_keys": {"t1", "h"},
         "description": "Temperature and humidity",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10300": {
         "name": "MA 10300 / MA 10320",
         "display_name": "Wireless Thermo-Hygrometer with Cable Sensor",
         "measurement_keys": {"t1", "t2", "h"},
         "description": "Temperature (internal/cable) and humidity",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10350": {
         "name": "MA 10350",
@@ -79,48 +87,56 @@ DEVICE_MODELS: Final = {
             "h",
         },  # t2 = water level (NOT cable temperature like MA10300)
         "description": "Temperature, humidity, and water detection",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10402": {
         "name": "MA 10402",
         "display_name": "Wireless CO2 Monitor",
         "measurement_keys": {"t1", "t2", "h", "ppm"},
         "description": "Temperature, humidity, and CO2 monitoring",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10410": {
         "name": "MA 10410",
         "display_name": "Weather Station",
         "measurement_keys": {"t1", "t2", "h", "h2"},
         "description": "Temperature indoor, humidity indoor, temperature outdoor, humidity outdoor",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10450": {
         "name": "MA 10450",
         "display_name": "Wireless Temperature Station",
         "measurement_keys": {"h1"},
         "description": "Humidity sensor",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10650": {
         "name": "MA 10650",
         "display_name": "Wireless Rain Gauge",
         "measurement_keys": {"t1", "r", "rf"},
         "description": "Rainfall measurement and flip counter",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10660": {
         "name": "MA 10660",
         "display_name": "Wireless Anemometer",
         "measurement_keys": {"ws", "wg", "wd"},
         "description": "Wind speed, gust, and direction",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10700": {
         "name": "MA 10700",
         "display_name": "Wireless Thermo-Hygrometer with Pool Sensor",
         "measurement_keys": {"t1", "h1", "t2"},
         "description": "Temperature, humidity, and pool temperature",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10800": {
         "name": "MA 10800",
         "display_name": "Wireless Contact Sensor",
         "measurement_keys": {"w"},
         "description": "Window/door contact detection",
+        "manufacturer": "Mobile Alerts",
     },
     "MA10880": {
         "name": "MA 10880",
@@ -136,18 +152,21 @@ DEVICE_MODELS: Final = {
             "kp4c",
         },
         "description": "4-channel wireless switch with key press monitoring",
+        "manufacturer": "Mobile Alerts",
     },
     "TFA_30.3060.01:IT": {
-        "name": "TFA Dostmann KLIMA@HOME 30.3060.01",
-        "display_name": "Wireless Thermo-Hygrometer with 3 sensors",
+        "name": "TFA 30.3060.01",
+        "display_name": "TFA Dostmann KLIMA@HOME Thermo-Hygrometer with 3 sensors",
         "measurement_keys": {"t1", "t2", "t3", "t4", "h1", "h2", "h3", "h4"},
         "description": "Temperature, humidity 1 internal sensor and up to 3 external sensors",
+        "manufacturer": "TFA Dostmann",
     },
     "TFA_30.3303.02": {
-        "name": "TFA Dostmann Temperature/Humidity Transmitter WEATHERHUB",
+        "name": "TFA 30.3303",
         "display_name": "TFA Dostmann Thermo-Hygrometer Transmitter for WEATHERHUB",
         "measurement_keys": {"t1", "h"},
         "description": "Wireless temperature and humidity transmitter for WEATHERHUB system",
+        "manufacturer": "TFA Dostmann",
     },
     # MA10870 (Voltage Monitor) - measurement keys unknown, excluded from detection
 }
@@ -331,12 +350,14 @@ class MobileAlertsDevice:
         device_type: str,
         name: str,
         phone_id: str | None = None,
+        manufacturer: str | None = None,
     ) -> None:
         """Initialize device."""
         self.device_id = device_id
         self.device_type = device_type
         self.name = name
         self.phone_id = phone_id
+        self.manufacturer = manufacturer or "Mobile Alerts"
 
     @property
     def unique_id(self) -> str:
@@ -350,7 +371,7 @@ class MobileAlertsDevice:
         return DeviceInfo(
             identifiers=identifiers,
             name=self.name,
-            manufacturer="Mobile Alerts / TFA Dostmann",
+            manufacturer=self.manufacturer,
             model=self.device_type,
         )
 
@@ -370,6 +391,7 @@ class MobileAlertsDeviceManager:
         device_type: str,
         name: str,
         phone_id: str | None = None,
+        manufacturer: str | None = None,
     ) -> MobileAlertsDevice:
         """Add or update a device."""
         device = MobileAlertsDevice(
@@ -377,6 +399,7 @@ class MobileAlertsDeviceManager:
             device_type=device_type,
             name=name,
             phone_id=phone_id,
+            manufacturer=manufacturer,
         )
 
         self._devices[device_id] = device

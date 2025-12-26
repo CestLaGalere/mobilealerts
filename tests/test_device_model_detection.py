@@ -280,7 +280,10 @@ class TestDeviceModelDetection:
             "h3",
             "h4",
         }
-        assert model_info["display_name"] == "Wireless Thermo-Hygrometer with 3 sensors"
+        assert (
+            model_info["display_name"]
+            == "TFA Dostmann KLIMA@HOME Thermo-Hygrometer with 3 sensors"
+        )
 
     def test_empty_measurement(self):
         """Test that empty measurement returns empty list."""
@@ -317,7 +320,13 @@ class TestDeviceModelDetection:
 
     def test_device_models_structure(self):
         """Test that all device models have required keys."""
-        required_keys = {"name", "display_name", "measurement_keys", "description"}
+        required_keys = {
+            "name",
+            "display_name",
+            "measurement_keys",
+            "description",
+            "manufacturer",
+        }
 
         for model_id, model_info in DEVICE_MODELS.items():
             assert isinstance(model_id, str), (
@@ -336,3 +345,4 @@ class TestDeviceModelDetection:
             assert isinstance(model_info["display_name"], str)
             assert isinstance(model_info["measurement_keys"], set)
             assert isinstance(model_info["description"], str)
+            assert isinstance(model_info["manufacturer"], str)
