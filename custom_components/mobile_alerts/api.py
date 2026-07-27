@@ -25,7 +25,23 @@ class MobileAlertsApi:
     )
 
     def __init__(self, phone_id: str) -> None:
-        """Initialize the API client."""
+        """Initialize the API client.
+
+        Args:
+            phone_id: The Mobile Alerts phone/app id, or the sentinel
+                ``"ui_devices"`` for users who configured devices via the HA
+                UI without supplying a phone id.
+
+        Note:
+            The ``phone_id`` is **only** used by :meth:`discover_devices`.
+            The ``lastmeasurement`` endpoint deliberately omits it (see
+            ``_fetch_device`` / ``_fetch_batch`` below) because the upstream
+            API returns ``HTTP 400`` for some accounts when ``phoneid`` is
+            included alongside ``deviceids`` (issue #54). The ``phone_id`` is
+            still stored on the instance so a future feature (e.g. surfacing
+            alert flags per issue #22) can opt back in without re-plumbing
+            configuration.
+        """
         self._phone_id = phone_id
         self._device_ids: list[str] = []
         self._data: list[dict[str, Any]] | None = None
@@ -100,6 +116,21 @@ class MobileAlertsApi:
         Called from register_device() to fetch the newly registered device's data
         without re-fetching all previously registered devices.
 
+        Note:
+            We intentionally do **not** send ``phoneid`` with ``lastmeasurement``
+            requests. The Mobile Alerts API is inconsistent across accounts:
+            when the supplied ``phoneid`` is not linked to the queried
+            ``deviceids`` in MA's database the endpoint returns ``HTTP 400``
+            (issue #54). The ``phoneid`` is only required by
+            :meth:`discover_devices` and is therefore only attached there.
+
+            Side effect: response ``measurement`` payloads will not include
+            the alert-flag fields that are gated behind ``phoneid``. The HA
+            integration does not currently expose those flags as entities, so
+            this is a no-op for users. Re-introducing ``phoneid`` here is a
+            future opt-in (issue #22 follow-up) and should be guarded against
+            the same ``HTTP 400`` case before being shipped.
+
         Args:
             device_id: The device ID to fetch
 
@@ -108,8 +139,6 @@ class MobileAlertsApi:
         """
         _LOGGER.debug("Fetching initial data for device %s", device_id)
         request_payload = {"deviceids": device_id}
-        if self._phone_id and self._phone_id != "ui_devices":
-            request_payload["phoneid"] = self._phone_id
 
         response_data = await self._post_api_request(request_payload)
         if response_data:
@@ -129,6 +158,11 @@ class MobileAlertsApi:
         """Fetch all registered devices in a single batch request.
 
         This is used for regular 10-minute updates to minimize API calls.
+
+        Note:
+            Same rationale as :meth:`_fetch_device`: ``phoneid`` is omitted to
+            avoid ``HTTP 400`` for accounts where the phoneid is not linked to
+            the queried devices in MA's database (issue #54).
         """
         _LOGGER.debug("Fetching data from Mobile Alerts API (batch mode)")
 
@@ -137,8 +171,6 @@ class MobileAlertsApi:
             return
 
         request_payload = {"deviceids": ",".join(self._device_ids)}
-        if self._phone_id and self._phone_id != "ui_devices":
-            request_payload["phoneid"] = self._phone_id
 
         response_data = await self._post_api_request(request_payload)
         if response_data:

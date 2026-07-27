@@ -2,7 +2,12 @@
 
 [Back](./README.md)
 
+## v2.3.1 (June 30 2026)
+
+- **fix**: `lastmeasurement` requests no longer include `phoneid`. Some accounts received `HTTP 400` from the Mobile Alerts API when both `phoneid` and `deviceids` were sent (issue [#54](https://github.com/CestLaGalere/mobilealerts/issues/54)). Discovery still uses `phoneid`.
+
 ## v2.3.0 (Mar 06 2026)
+
 - **feat**: Add support for new device MA10870 AC power status sensor [[#51](https://github.com/CestLaGalere/mobilealerts/issues/51)]
 - **fix**: Translation of labels did not work because of wrong key handling in sensor classes.
 

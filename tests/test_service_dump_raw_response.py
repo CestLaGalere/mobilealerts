@@ -1,7 +1,6 @@
 """Tests for Mobile Alerts dump_raw_response service."""
 
-import json
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 from homeassistant.core import HomeAssistant

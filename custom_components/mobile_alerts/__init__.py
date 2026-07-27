@@ -1,16 +1,14 @@
 """Mobile Alerts integration."""
 
-import json
 import logging
 from datetime import datetime
 from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_DEVICE_ID, Platform
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers.typing import ConfigType
-import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN
 
