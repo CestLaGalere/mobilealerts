@@ -1,7 +1,7 @@
 """Sensor entity classes for Mobile Alerts."""
 
-from datetime import datetime, timezone
 import logging
+from datetime import datetime, timezone
 from typing import Final, cast
 
 from homeassistant.components.binary_sensor import (

@@ -1,16 +1,16 @@
 """Config flow for Mobile Alerts integration."""
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME
 from homeassistant.helpers import config_validation as cv
-from homeassistant.config_entries import ConfigFlowResult
 
 from .api import ApiError, MobileAlertsApi
-from .const import CONF_PHONE_ID, CONF_MODEL_ID, DOMAIN
+from .const import CONF_MODEL_ID, CONF_PHONE_ID, DOMAIN
 from .device import find_all_matching_models
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,14 +23,14 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._detected_type: Optional[str] = None
-        self._device_data: Optional[dict[str, Any]] = None
-        self._device_id: Optional[str] = None
-        self._device_name: Optional[str] = None
+        self._detected_type: str | None = None
+        self._device_data: dict[str, Any] | None = None
+        self._device_id: str | None = None
+        self._device_name: str | None = None
         self._candidates: list[tuple[str, dict[str, Any]]] = []
 
     async def async_step_user(
-        self, user_input: Optional[dict[str, Any]] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle the initial step - ask for device ID."""
         errors: dict[str, str] = {}
@@ -215,7 +215,7 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_select_model(
-        self, user_input: Optional[dict[str, Any]] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle model selection for ambiguous devices.
 

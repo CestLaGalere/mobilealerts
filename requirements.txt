@@ -1,18 +1,19 @@
 colorlog==6.10.1
-homeassistant>=2025.11.0
-pip>=25.2.0
-ruff==0.14.7
+homeassistant==2026.7.4
+pip>=26.0.0
+ruff==0.16.1
 
 # DNS resolution dependencies (compatibility fix)
-aiodns>=3.1.0
-pycares<5.0
+aiodns==4.0.4
+pycares>=5.0.0,<6.0.0
 
 # Home Assistant default integration dependencies
-hassil>=3.0.0
-home-assistant-intents>=2025.11.0
-PyTurboJPEG>=1.8.0
-pymicro-vad>=1.0.0
-pysilero-vad>=1.0.0
-pyspeex-noise>=1.0.0
-mutagen>=1.0.0
-ha-ffmpeg>=1.0.0
+# Version pinned to match Home Assistant's package_constraints.txt
+hassil==3.8.0
+home-assistant-intents==2026.6.24
+PyTurboJPEG==1.8.3
+pymicro-vad==1.0.1
+pysilero-vad==3.4.0
+pyspeex-noise==1.0.2
+mutagen==1.47.0
+ha-ffmpeg==3.2.2
