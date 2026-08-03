@@ -1,8 +1,8 @@
 """Tests for device model detection with real-world measurement data."""
 
 from custom_components.mobile_alerts.device import (
-    find_all_matching_models,
     DEVICE_MODELS,
+    find_all_matching_models,
 )
 
 
@@ -47,7 +47,7 @@ class TestDeviceModelDetection:
         # Could match MA10100, MA10120 (both have only t1)
         model_ids = [model_id for model_id, _ in result]
         assert expected_model_id in model_ids or "MA10120" in model_ids
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1"}
 
     def test_ma10101_thermometer_with_cable(self):
@@ -67,7 +67,7 @@ class TestDeviceModelDetection:
         model_ids = [model_id for model_id, _ in result]
         assert "MA10101" in model_ids
         assert "MA10870" in model_ids
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1", "t2"}
 
     def test_ma10200_thermo_hygro(self):
@@ -83,7 +83,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1", "h"}
 
     def test_ma10238_air_pressure_monitor(self):
@@ -100,7 +100,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1", "h", "ap"}
 
     def test_ma10230_room_climate_station_with_h_key(self):
@@ -141,7 +141,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {
             "t1",
             "h",
@@ -188,7 +188,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1", "t2", "h"}
 
     def test_ma10650_rain_gauge(self):
@@ -205,7 +205,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1", "r", "rf"}
 
     def test_ma10660_anemometer(self):
@@ -222,7 +222,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"ws", "wg", "wd"}
 
     def test_ma10800_contact_sensor(self):
@@ -237,7 +237,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"w"}
 
     def test_ma10402_co2_monitor(self):
@@ -255,7 +255,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {"t1", "t2", "h", "ppm"}
 
     def test_ma10870_voltage_monitor(self):
@@ -310,7 +310,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {
             "kp1t",
             "kp1c",
@@ -341,7 +341,7 @@ class TestDeviceModelDetection:
         }
         result = find_all_matching_models(measurement)
         assert len(result) > 0
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {
             "t1",
             "t2",
@@ -372,7 +372,7 @@ class TestDeviceModelDetection:
         assert len(result) > 0
         # Multiple models may have the same keys (t1, h): MA10200 and TFA_30.3303.02
         # We specifically look for the TFA model
-        model_id, model_info = find_model_by_id(result, expected_model_id)
+        _model_id, model_info = find_model_by_id(result, expected_model_id)
         assert model_info["measurement_keys"] == {
             "t1",
             "h",

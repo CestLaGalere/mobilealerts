@@ -4,7 +4,7 @@ import logging
 from typing import Any, Final
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceRegistry, DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo, DeviceRegistry
 
 from .const import DOMAIN
 

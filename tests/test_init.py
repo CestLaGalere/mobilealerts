@@ -2,6 +2,7 @@
 
 import pytest
 from homeassistant.setup import async_setup_component
+
 from custom_components.mobile_alerts.const import DOMAIN
 
 # Stelle sicher, dass das Plugin geladen wird

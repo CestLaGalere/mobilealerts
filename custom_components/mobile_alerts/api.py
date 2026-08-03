@@ -1,9 +1,9 @@
 """Mobile Alerts API communication module."""
 
-from asyncio import timeout
 import json
 import logging
 import os
+from asyncio import timeout
 from typing import Any, Final
 
 import aiohttp

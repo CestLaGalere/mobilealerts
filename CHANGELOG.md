@@ -2,6 +2,11 @@
 
 [Back](./README.md)
 
+## v2.3.2 (Aug 02 2026)
+
+- **chore**: Update dev container to Python 3.14 and pin dependencies to Home Assistant `2026.7.4` (`hassil==3.8.0`, `home-assistant-intents==2026.6.24`, `home-assistant-frontend==20260624.6`). Fixes `ModuleNotFoundError: No module named 'hassil.fuzzy'` crash after login. Also bumps `pip`, `ruff` and test dependencies.
+- **fix**: Correct device class for wind gust sensor from `NONE` to `WIND_SPEED` (issue [#56](https://github.com/CestLaGalere/mobilealerts/issues/56)).
+
 ## v2.3.1 (June 30 2026)
 
 - **fix**: `lastmeasurement` requests no longer include `phoneid`. Some accounts received `HTTP 400` from the Mobile Alerts API when both `phoneid` and `deviceids` were sent (issue [#54](https://github.com/CestLaGalere/mobilealerts/issues/54)). Discovery still uses `phoneid`.

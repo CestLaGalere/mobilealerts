@@ -1,13 +1,13 @@
 """Tests for Mobile Alerts dump_raw_response service."""
 
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME
+from homeassistant.core import HomeAssistant
 
-from custom_components.mobile_alerts.const import DOMAIN, CONF_MODEL_ID, CONF_PHONE_ID
+from custom_components.mobile_alerts.const import CONF_MODEL_ID, CONF_PHONE_ID, DOMAIN
 
 
 @pytest.fixture

@@ -39,8 +39,8 @@ import logging
 import os
 import signal
 import sys
-from datetime import datetime
-from typing import Any, Dict
+from datetime import datetime, timezone
+from typing import Any
 
 from aiohttp import web
 
@@ -52,14 +52,14 @@ logging.basicConfig(
 _LOGGER = logging.getLogger(__name__)
 
 # Test device definitions
-TEST_DEVICES: Dict[str, Dict[str, Any]] = {
+TEST_DEVICES: dict[str, dict[str, Any]] = {
     "090005AC99E1": {
         "name": "MA10100 - Thermometer",
         "model": "MA10100",
         "measurement": {
             "idx": 100,
-            "ts": int(datetime.now().timestamp()),
-            "c": int(datetime.now().timestamp()) + 5,
+            "ts": int(datetime.now(timezone.utc).timestamp()),
+            "c": int(datetime.now(timezone.utc).timestamp()) + 5,
             "t1": 22.5,
         },
     },
@@ -68,8 +68,8 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
         "model": "MA10300",
         "measurement": {
             "idx": 200,
-            "ts": int(datetime.now().timestamp()),
-            "c": int(datetime.now().timestamp()) + 5,
+            "ts": int(datetime.now(timezone.utc).timestamp()),
+            "c": int(datetime.now(timezone.utc).timestamp()) + 5,
             "t1": 21.3,
             "t2": 11.0,
             "h": 45.0,
@@ -80,8 +80,8 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
         "model": "MA10230",
         "measurement": {
             "idx": 230,
-            "ts": int(datetime.now().timestamp()),
-            "c": int(datetime.now().timestamp()) + 5,
+            "ts": int(datetime.now(timezone.utc).timestamp()),
+            "c": int(datetime.now(timezone.utc).timestamp()) + 5,
             "t1": 20.8,
             "h": 48.0,
             "h3havg": 47.5,
@@ -95,8 +95,8 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
         "model": "MA10238",
         "measurement": {
             "idx": 230,
-            "ts": int(datetime.now().timestamp()),
-            "c": int(datetime.now().timestamp()) + 5,
+            "ts": int(datetime.now(timezone.utc).timestamp()),
+            "c": int(datetime.now(timezone.utc).timestamp()) + 5,
             "t1": 20.8,
             "h": 48.0,
             "ap": 1013.2,
@@ -119,8 +119,8 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
         "model": "MA10300",
         "measurement": {
             "idx": 300,
-            "ts": int(datetime.now().timestamp()),
-            "c": int(datetime.now().timestamp()) + 5,
+            "ts": int(datetime.now(timezone.utc).timestamp()),
+            "c": int(datetime.now(timezone.utc).timestamp()) + 5,
             "t1": 19.7,  # Internal temperature
             "t2": 18.2,  # Cable temperature (NOT water!)
             "h": 42.0,
@@ -131,8 +131,8 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
         "model": "MA10350",
         "measurement": {
             "idx": 350,
-            "ts": int(datetime.now().timestamp()),
-            "c": int(datetime.now().timestamp()) + 5,
+            "ts": int(datetime.now(timezone.utc).timestamp()),
+            "c": int(datetime.now(timezone.utc).timestamp()) + 5,
             "t1": 22.1,  # Internal temperature
             "t2": 1,  # Water level (0=no water, 1=water detected) - SAME KEY as MA10300!
             "h": 38.5,
@@ -143,8 +143,8 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
         "model": "MA10800",
         "measurement": {
             "idx": 800,
-            "ts": int(datetime.now().timestamp()),
-            "c": int(datetime.now().timestamp()) + 5,
+            "ts": int(datetime.now(timezone.utc).timestamp()),
+            "c": int(datetime.now(timezone.utc).timestamp()) + 5,
             "w": False,  # Window closed
             "wsct": True,  # Window sensor connected
             "wutt": True,  # Battery ok
@@ -155,8 +155,8 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
         "model": "MA10650",
         "measurement": {
             "idx": 29303,
-            "ts": int(datetime.now().timestamp()),
-            "c": int(datetime.now().timestamp()) + 5,
+            "ts": int(datetime.now(timezone.utc).timestamp()),
+            "c": int(datetime.now(timezone.utc).timestamp()) + 5,
             "lb": False,  # Low battery
             "sc": True,  # Status change
             "t1": 4.1,  # Temperature in celsius
@@ -170,8 +170,8 @@ TEST_DEVICES: Dict[str, Dict[str, Any]] = {
         "model": "MA10880",
         "measurement": {
             "idx": 880,
-            "ts": int(datetime.now().timestamp()),
-            "c": int(datetime.now().timestamp()) + 5,
+            "ts": int(datetime.now(timezone.utc).timestamp()),
+            "c": int(datetime.now(timezone.utc).timestamp()) + 5,
             "kp1t": 1,  # Key press 1 type
             "kp1c": 42,  # Key press 1 counter
             "kp2t": 2,  # Key press 2 type
@@ -217,9 +217,9 @@ class MockAPIServer:
                     device_data["id"] = device_id
                     device_data["deviceid"] = device_id
                     # Update timestamp to current time
-                    device_data["measurement"]["ts"] = int(datetime.now().timestamp())
+                    device_data["measurement"]["ts"] = int(datetime.now(timezone.utc).timestamp())
                     device_data["measurement"]["c"] = (
-                        int(datetime.now().timestamp()) + 5
+                        int(datetime.now(timezone.utc).timestamp()) + 5
                     )
                     devices.append(device_data)
                     _LOGGER.info(
@@ -234,7 +234,7 @@ class MockAPIServer:
             _LOGGER.debug("API Response: %s", json.dumps(response, indent=2))
             return web.json_response(response)
 
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001 - mock server safety net
             _LOGGER.error("API Error: %s", err)
             return web.json_response({"success": False, "error": str(err)}, status=500)
 
@@ -253,7 +253,7 @@ class MockAPIServer:
                     {"success": False, "error": "Device not found"}, status=404
                 )
 
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001 - mock server safety net
             _LOGGER.error("Register Error: %s", err)
             return web.json_response({"success": False, "error": str(err)}, status=500)
 

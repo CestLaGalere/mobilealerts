@@ -1,17 +1,16 @@
 """Support for the Mobile Alerts service."""
 
-from datetime import timedelta
 import logging
+from datetime import timedelta
 from typing import Final
 
+import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME, CONF_TYPE
 from homeassistant.core import HomeAssistant
-import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
@@ -19,8 +18,8 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from .api import MobileAlertsApi
 from .const import (
     CONF_DEVICES,
-    CONF_PHONE_ID,
     CONF_MODEL_ID,
+    CONF_PHONE_ID,
     DOMAIN,
     SCAN_INTERVAL_MINUTES,
 )
@@ -39,8 +38,8 @@ from .sensor_classes import (
     MobileAlertsWaterSensor,
     MobileAlertsWindDirectionDegreesSensor,
     MobileAlertsWindDirectionSensor,
-    MobileAlertsWindSpeedSensor,
     MobileAlertsWindGustSensor,
+    MobileAlertsWindSpeedSensor,
 )
 
 _LOGGER: Final = logging.getLogger(__name__)

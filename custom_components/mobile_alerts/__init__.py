@@ -1,7 +1,7 @@
 """Mobile Alerts integration."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import voluptuous as vol
@@ -119,7 +119,7 @@ async def _register_services(hass: HomeAssistant) -> None:
 
         return {
             "success": True,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "entries_count": len(results),
             "data": results,
         }

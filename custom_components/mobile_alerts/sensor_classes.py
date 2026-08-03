@@ -1,7 +1,7 @@
 """Sensor entity classes for Mobile Alerts."""
 
-from datetime import datetime, timezone
 import logging
+from datetime import datetime, timezone
 from typing import Final, cast
 
 from homeassistant.components.binary_sensor import (
@@ -543,12 +543,12 @@ class MobileAlertsWindGustSensor(MobileAlertsSensor):
     ) -> None:
         """Initialize the wind gust sensor."""
         super().__init__(coordinator, device=device, device_info=device_info)
-        self._device_class = None  # Wind gust doesn't have a device class in HA
+        self._device_class = SensorDeviceClass.WIND_SPEED
         self._attr_native_unit_of_measurement = UnitOfSpeed.METERS_PER_SECOND
         self.entity_description = SensorEntityDescription(
             key="wind_gust",
             translation_key="wind_gust",
-            device_class=None,
+            device_class=SensorDeviceClass.WIND_SPEED,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfSpeed.METERS_PER_SECOND,
         )
