@@ -1,7 +1,7 @@
 """Data update coordinator for Mobile Alerts."""
 
-from datetime import timedelta
 import logging
+from datetime import timedelta
 from typing import Any, Final
 
 from homeassistant.core import HomeAssistant

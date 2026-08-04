@@ -1,23 +1,23 @@
 """Tests for Mobile Alerts sensor entities."""
 
-import pytest
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
+import pytest
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME, CONF_TYPE, PERCENTAGE
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from custom_components.mobile_alerts.sensor import (
-    MobileAlertsCoordinator,
-    MobileAlertsTemperatureSensor,
-    MobileAlertsHumiditySensor,
-    MobileAlertsBatterySensor,
-    MobileAlertsLastSeenSensor,
-)
-from custom_components.mobile_alerts.sensor_classes import MobileAlertsACPowerSensor
 from custom_components.mobile_alerts.api import MobileAlertsApi
 from custom_components.mobile_alerts.const import DOMAIN
+from custom_components.mobile_alerts.sensor import (
+    MobileAlertsBatterySensor,
+    MobileAlertsCoordinator,
+    MobileAlertsHumiditySensor,
+    MobileAlertsLastSeenSensor,
+    MobileAlertsTemperatureSensor,
+)
+from custom_components.mobile_alerts.sensor_classes import MobileAlertsACPowerSensor
 
 
 @pytest.fixture

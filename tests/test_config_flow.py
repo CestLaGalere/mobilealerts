@@ -1,7 +1,8 @@
 """Tests for Mobile Alerts config flow."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME
 
 from custom_components.mobile_alerts.config_flow import MobileAlertsConfigFlow
