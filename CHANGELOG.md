@@ -2,6 +2,10 @@
 
 [Back](./README.md)
 
+## Unreleased
+
+- **fix**: Air pressure (`ap`) and CO2 / air quality (`ppm`) sensors now report units (`hPa` and `ppm`), device classes (`ATMOSPHERIC_PRESSURE`, `CO2`) and state class `MEASUREMENT`. Previously they used the generic sensor class without a unit, so Home Assistant showed bare numbers and recorded no long-term statistics.
+
 ## v2.3.2 (Aug 02 2026)
 
 - **chore**: Update dev container to Python 3.14 and pin dependencies to Home Assistant `2026.7.4` (`hassil==3.8.0`, `home-assistant-intents==2026.6.24`, `home-assistant-frontend==20260624.6`). Fixes `ModuleNotFoundError: No module named 'hassil.fuzzy'` crash after login. Also bumps `pip`, `ruff` and test dependencies.

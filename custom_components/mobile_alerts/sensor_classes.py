@@ -15,12 +15,14 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    CONCENTRATION_PARTS_PER_MILLION,
     CONF_DEVICE_ID,
     CONF_NAME,
     CONF_TYPE,
     PERCENTAGE,
     STATE_UNKNOWN,
     UnitOfLength,
+    UnitOfPressure,
     UnitOfSpeed,
     UnitOfTemperature,
 )
@@ -551,6 +553,88 @@ class MobileAlertsWindGustSensor(MobileAlertsSensor):
             device_class=SensorDeviceClass.WIND_SPEED,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfSpeed.METERS_PER_SECOND,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the value reported by the sensor."""
+        try:
+            if self._attr_native_value is None:
+                return None
+            # Convert string values from API to float
+            return float(cast(int | float | str, self._attr_native_value))
+        except (ValueError, TypeError):
+            _LOGGER.warning(
+                "Invalid value for entity %s: %s",
+                self.entity_id,
+                self._attr_native_value,
+            )
+            return None
+
+
+class MobileAlertsPressureSensor(MobileAlertsSensor):
+    """Implementation of a Mobile Alerts air pressure sensor (ap measurement).
+
+    The API reports air pressure in hPa (e.g. MA 10238).
+    """
+
+    def __init__(
+        self,
+        coordinator: MobileAlertsCoordinator,
+        device: dict[str, str],
+        device_info: DeviceInfo,
+    ) -> None:
+        """Initialize the air pressure sensor."""
+        super().__init__(coordinator, device=device, device_info=device_info)
+        self._device_class = SensorDeviceClass.ATMOSPHERIC_PRESSURE
+        self._attr_native_unit_of_measurement = UnitOfPressure.HPA
+        self.entity_description = SensorEntityDescription(
+            key="pressure",
+            translation_key="pressure",
+            device_class=SensorDeviceClass.ATMOSPHERIC_PRESSURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPressure.HPA,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the value reported by the sensor."""
+        try:
+            if self._attr_native_value is None:
+                return None
+            # Convert string values from API to float
+            return float(cast(int | float | str, self._attr_native_value))
+        except (ValueError, TypeError):
+            _LOGGER.warning(
+                "Invalid value for entity %s: %s",
+                self.entity_id,
+                self._attr_native_value,
+            )
+            return None
+
+
+class MobileAlertsCO2Sensor(MobileAlertsSensor):
+    """Implementation of a Mobile Alerts CO2 / air quality sensor (ppm measurement).
+
+    The API reports the CO2 concentration in ppm (e.g. MA 10402).
+    """
+
+    def __init__(
+        self,
+        coordinator: MobileAlertsCoordinator,
+        device: dict[str, str],
+        device_info: DeviceInfo,
+    ) -> None:
+        """Initialize the CO2 sensor."""
+        super().__init__(coordinator, device=device, device_info=device_info)
+        self._device_class = SensorDeviceClass.CO2
+        self._attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+        self.entity_description = SensorEntityDescription(
+            key="air_quality",
+            translation_key="air_quality",
+            device_class=SensorDeviceClass.CO2,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
         )
 
     @property
