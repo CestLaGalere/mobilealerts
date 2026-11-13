@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 import pytest
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
-    CONCENTRATION_PARTS_PER_MILLION,
     CONF_DEVICE_ID,
     CONF_NAME,
     CONF_TYPE,
@@ -561,7 +560,7 @@ async def test_co2_sensor_initialization(sample_device_info):
     assert sensor._attr_unique_id == "A1B2C3D4E5F6ppm"
     assert sensor.device_class == SensorDeviceClass.CO2
     assert sensor.state_class == SensorStateClass.MEASUREMENT
-    assert sensor.native_unit_of_measurement == CONCENTRATION_PARTS_PER_MILLION
+    assert sensor.native_unit_of_measurement == "ppm"
     assert sensor.native_value == 750.0
     assert sensor._attr_available is True
 

@@ -15,7 +15,6 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
-    CONCENTRATION_PARTS_PER_MILLION,
     CONF_DEVICE_ID,
     CONF_NAME,
     CONF_TYPE,
@@ -33,6 +32,18 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import ATTRIBUTION
 from .coordinator import MobileAlertsCoordinator
+
+try:
+    from homeassistant.const import UnitOfRatio
+
+    PARTS_PER_MILLION: Final[str] = UnitOfRatio.PARTS_PER_MILLION
+except ImportError:
+    # Older Home Assistant versions have no UnitOfRatio (and the constant is
+    # not deprecated there). Drop this fallback once the minimum HA version
+    # ships UnitOfRatio, since the old constant is removed in HA 2027.8.
+    from homeassistant.const import (  # type: ignore[attr-defined,no-redef]
+        CONCENTRATION_PARTS_PER_MILLION as PARTS_PER_MILLION,
+    )
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -628,13 +639,13 @@ class MobileAlertsCO2Sensor(MobileAlertsSensor):
         """Initialize the CO2 sensor."""
         super().__init__(coordinator, device=device, device_info=device_info)
         self._device_class = SensorDeviceClass.CO2
-        self._attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+        self._attr_native_unit_of_measurement = PARTS_PER_MILLION
         self.entity_description = SensorEntityDescription(
             key="air_quality",
             translation_key="air_quality",
             device_class=SensorDeviceClass.CO2,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+            native_unit_of_measurement=PARTS_PER_MILLION,
         )
 
     @property

@@ -5,6 +5,7 @@
 ## Unreleased
 
 - **fix**: Air pressure (`ap`) and CO2 / air quality (`ppm`) sensors now report units (`hPa` and `ppm`), device classes (`ATMOSPHERIC_PRESSURE`, `CO2`) and state class `MEASUREMENT`. Previously they used the generic sensor class without a unit, so Home Assistant showed bare numbers and recorded no long-term statistics.
+- **fix**: Use `UnitOfRatio.PARTS_PER_MILLION` instead of the deprecated `CONCENTRATION_PARTS_PER_MILLION` (removed in Home Assistant 2027.8). Older Home Assistant versions without `UnitOfRatio` fall back to the old constant.
 
 ## v2.3.2 (Aug 02 2026)
 
