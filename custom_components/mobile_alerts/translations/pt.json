@@ -13,7 +13,7 @@
         "title": "Selecionar modelo do dispositivo",
         "description": "O ID do dispositivo não pode ser identificado de forma única porque vários modelos têm os mesmos sensores.\n\nID do dispositivo: {device_id}\n\nPor favor, selecione seu tipo de dispositivo:",
         "data": {
-          "model": "Qual dispositivo você tem?"
+          "model_id": "Qual dispositivo você tem?"
         }
       }
     },
@@ -26,6 +26,9 @@
       "sensor_type_detection_failed": "Não foi possível detectar o tipo de sensor",
       "api_error": "Erro de API durante a validação",
       "unknown_error": "Ocorreu um erro inesperado"
+    },
+    "abort": {
+      "already_configured": "O dispositivo já está configurado"
     }
   },
   "entity": {
@@ -62,6 +65,18 @@
       },
       "humidity_4": {
         "name": "Umidade 4"
+      },
+      "humidity_3h_avg": {
+        "name": "Umidade (média 3h)"
+      },
+      "humidity_24h_avg": {
+        "name": "Umidade (média 24h)"
+      },
+      "humidity_7d_avg": {
+        "name": "Umidade (média 7d)"
+      },
+      "humidity_30d_avg": {
+        "name": "Umidade (média 30d)"
       },
       "external_humidity": {
         "name": "Umidade externa"
@@ -122,6 +137,15 @@
       },
       "kp4_count": {
         "name": "Contador de toque 4"
+      },
+      "ac_power": {
+        "name": "Corrente alternada"
+      },
+      "water": {
+        "name": "Água detectada"
+      },
+      "contact": {
+        "name": "Contato de janela"
       }
     },
     "binary_sensor": {

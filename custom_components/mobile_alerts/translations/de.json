@@ -26,6 +26,9 @@
       "sensor_type_detection_failed": "Sensortyp konnte nicht erkannt werden",
       "api_error": "API-Fehler bei der Validierung",
       "unknown_error": "Ein unerwarteter Fehler ist aufgetreten"
+    },
+    "abort": {
+      "already_configured": "Gerät ist bereits konfiguriert"
     }
   },
   "entity": {
@@ -62,6 +65,18 @@
       },
       "humidity_4": {
         "name": "Luftfeuchte 4"
+      },
+      "humidity_3h_avg": {
+        "name": "Luftfeuchte (3h-Durchschnitt)"
+      },
+      "humidity_24h_avg": {
+        "name": "Luftfeuchte (24h-Durchschnitt)"
+      },
+      "humidity_7d_avg": {
+        "name": "Luftfeuchte (7T-Durchschnitt)"
+      },
+      "humidity_30d_avg": {
+        "name": "Luftfeuchte (30T-Durchschnitt)"
       },
       "external_humidity": {
         "name": "Externe Luftfeuchte"
@@ -122,6 +137,15 @@
       },
       "kp4_count": {
         "name": "Taste 4 Zähler"
+      },
+      "ac_power": {
+        "name": "Netzspannung"
+      },
+      "water": {
+        "name": "Wasser erkannt"
+      },
+      "contact": {
+        "name": "Fensterkontakt"
       }
     },
     "binary_sensor": {

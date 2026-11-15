@@ -8,6 +8,7 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import ApiError, MobileAlertsApi
 from .const import CONF_MODEL_ID, CONF_PHONE_ID, DOMAIN
@@ -29,6 +30,33 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._device_name: str | None = None
         self._candidates: list[tuple[str, dict[str, Any]]] = []
 
+    def _seed_prefetched_data(
+        self, device_id: str, device_data: dict[str, Any] | None
+    ) -> None:
+        """Cache fetched device data for setup and seed an active coordinator if present."""
+        if not device_data or self.hass is None:
+            return
+        try:
+            _LOGGER.debug("Seeding coordinator with device data for %s", device_id)
+            domain_data = self.hass.data.setdefault(DOMAIN, {})
+            domain_data.setdefault("prefetched_device_data", {})[device_id] = (
+                device_data
+            )
+            coordinator = domain_data.get("coordinators", {}).get("ui_devices")
+            if coordinator is not None:
+                coordinator._api.seed_device_data(device_data)
+                coordinator.async_set_updated_data({"devices": coordinator._api._data})
+                _LOGGER.debug(
+                    "Coordinator seeded with device data for %s", device_id
+                )
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning(
+                "Could not seed coordinator with device data for %s: %s. "
+                "Data will be available after the next scheduled update.",
+                device_id,
+                err,
+            )
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -48,7 +76,8 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 try:
                     # Test API call with empty phone_id (uses public test data)
                     _LOGGER.debug("Validating device %s via API", device_id)
-                    api = MobileAlertsApi(phone_id="")
+                    session = async_get_clientsession(self.hass) if self.hass else None
+                    api = MobileAlertsApi(phone_id="", session=session)
                     # Register device in API (this also fetches its data)
                     await api.register_device(device_id)
 
@@ -85,7 +114,9 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             errors["base"] = "device_offline_no_data"
                         else:
                             # Try to detect the device model from measurement data
-                            all_matches = find_all_matching_models(measurement)
+                            all_matches = find_all_matching_models(
+                                measurement, device_id=device_id
+                            )
 
                             if not all_matches:
                                 _LOGGER.error(
@@ -146,40 +177,8 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                     },
                                 )
 
-                                # Update coordinator with the already-fetched device data
-                                # This prevents entities from being "unavailable" and avoids an extra API call
-                                # which helps respect the rate limit (max 3 req/min/device)
-                                try:
-                                    _LOGGER.debug(
-                                        "Seeding coordinator with device data for %s",
-                                        device_id,
-                                    )
-                                    from .const import DOMAIN
-
-                                    hass = self.hass
-                                    if (
-                                        DOMAIN in hass.data
-                                        and "coordinators" in hass.data[DOMAIN]
-                                    ):
-                                        coordinators = hass.data[DOMAIN]["coordinators"]
-                                        phone_id = "ui_devices"
-                                        if phone_id in coordinators:
-                                            coordinator = coordinators[phone_id]
-                                            # Directly seed the coordinator with the data we already fetched
-                                            # This avoids another API call and respects rate limits
-                                            if device_data:
-                                                coordinator._api._data = [device_data]
-                                                _LOGGER.debug(
-                                                    "Coordinator seeded with device data for %s",
-                                                    device_id,
-                                                )
-                                except Exception as err:  # noqa: BLE001
-                                    _LOGGER.warning(
-                                        "Could not seed coordinator with device data for %s: %s. "
-                                        "Data will be available after the next scheduled update.",
-                                        device_id,
-                                        err,
-                                    )
+                                # Cache/seed fetched device data to prevent extra API calls on setup
+                                self._seed_prefetched_data(device_id, device_data)
 
                                 return entry
 
@@ -265,31 +264,8 @@ class MobileAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 },
             )
 
-            # Update coordinator with the already-fetched device data
-            try:
-                _LOGGER.debug(
-                    "Seeding coordinator with device data for %s",
-                    device_id,
-                )
-                from .const import DOMAIN
-
-                hass = self.hass
-                if DOMAIN in hass.data and "coordinators" in hass.data[DOMAIN]:
-                    coordinators = hass.data[DOMAIN]["coordinators"]
-                    phone_id = "ui_devices"
-                    if phone_id in coordinators:
-                        coordinator = coordinators[phone_id]
-                        if self._device_data:
-                            coordinator.data[device_id] = self._device_data
-                            _LOGGER.debug(
-                                "Updated coordinator data for device %s",
-                                device_id,
-                            )
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.warning(
-                    "Failed to seed coordinator: %s (non-critical)",
-                    err,
-                )
+            # Cache/seed fetched device data to prevent extra API calls on setup
+            self._seed_prefetched_data(device_id, self._device_data)
 
             return entry
 

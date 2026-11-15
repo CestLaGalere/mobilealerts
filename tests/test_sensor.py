@@ -5,7 +5,15 @@ from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.const import CONF_DEVICE_ID, CONF_NAME, CONF_TYPE, PERCENTAGE
+from homeassistant.const import (
+    CONCENTRATION_PARTS_PER_MILLION,
+    CONF_DEVICE_ID,
+    CONF_NAME,
+    CONF_TYPE,
+    PERCENTAGE,
+    EntityCategory,
+    UnitOfPressure,
+)
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from custom_components.mobile_alerts.api import MobileAlertsApi
@@ -17,7 +25,13 @@ from custom_components.mobile_alerts.sensor import (
     MobileAlertsLastSeenSensor,
     MobileAlertsTemperatureSensor,
 )
-from custom_components.mobile_alerts.sensor_classes import MobileAlertsACPowerSensor
+from custom_components.mobile_alerts.sensor_classes import (
+    MobileAlertsACPowerSensor,
+    MobileAlertsCO2Sensor,
+    MobileAlertsPressureSensor,
+    MobileAlertsRainSensor,
+    MobileAlertsWindDirectionDegreesSensor,
+)
 
 
 @pytest.fixture
@@ -478,3 +492,176 @@ async def test_ac_power_sensor_no_data(sample_device_info):
 
     assert sensor._attr_is_on is False
     assert not sensor._attr_available
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("reading", "expected_value", "expected_icon"),
+    [
+        ({"lowbat": True, "measurement": {"t1": 21.0}}, "Low", "mdi:battery-low"),
+        ({"lowbat": False, "measurement": {"t1": 21.0}}, "OK", "mdi:battery"),
+        ({"lowbattery": True, "measurement": {"t1": 21.0}}, "Low", "mdi:battery-low"),
+        (
+            {"measurement": {"t1": 21.0, "lb": True}},
+            "Low",
+            "mdi:battery-low",
+        ),
+        (
+            {"lowbat": True},
+            "Low",
+            "mdi:battery-low",
+        ),
+    ],
+)
+async def test_battery_sensor_all_field_variants_and_diagnostic_category(
+    sample_device_info, reading, expected_value, expected_icon
+):
+    """Test battery extraction from lowbat, lowbattery, measurement.lb and diagnostic category."""
+    mock_coord = MagicMock()
+    mock_coord.get_reading.return_value = reading
+    device = {CONF_DEVICE_ID: "A1B2C3D4E5F6", CONF_NAME: "Test", CONF_TYPE: "t1"}
+
+    sensor = MobileAlertsBatterySensor(mock_coord, device, sample_device_info)
+    assert sensor.entity_category == EntityCategory.DIAGNOSTIC
+    assert sensor.entity_description.translation_key == "battery"
+    assert sensor._attr_native_value == expected_value
+    assert sensor._attr_icon == expected_icon
+    assert sensor._attr_available is True
+
+
+@pytest.mark.asyncio
+async def test_last_seen_sensor_prefers_newer_lastseen_and_diagnostic_category(
+    sample_device_info,
+):
+    """Test Last Seen uses newer of data['lastseen'] and measurement['c'] and is diagnostic."""
+    mock_coord = MagicMock()
+    # Keepalive scenario: top-level lastseen is newer than measurement.c
+    mock_coord.get_reading.return_value = {
+        "lastseen": 1763190000,
+        "measurement": {"t1": 10.0, "c": 1762930000, "ts": 1762929900},
+    }
+    device = {CONF_DEVICE_ID: "A1B2C3D4E5F6", CONF_NAME: "Test", CONF_TYPE: "t1"}
+
+    sensor = MobileAlertsLastSeenSensor(mock_coord, device, sample_device_info)
+    assert sensor.entity_category == EntityCategory.DIAGNOSTIC
+    assert sensor._attr_available is True
+    assert sensor._attr_native_value == datetime.fromtimestamp(
+        1763190000, tz=timezone.utc
+    )
+
+    # Also verify measurement.c wins when it is newer than lastseen
+    mock_coord.get_reading.return_value = {
+        "lastseen": 1762930000,
+        "measurement": {"t1": 10.0, "c": 1763200000, "ts": 1763199900},
+    }
+    sensor.extract_reading()
+    assert sensor._attr_native_value == datetime.fromtimestamp(
+        1763200000, tz=timezone.utc
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("sentinel", [43530, 43530.0, 65295, 65295.0, 65296])
+async def test_invalid_measurement_sentinels_filtered(sample_device_info, sentinel):
+    """API error sentinels (43530 not connected, 65295/65296 out of range) yield None."""
+    mock_coord = MagicMock()
+    mock_coord.get_reading.return_value = {
+        "measurement": {
+            "t1": sentinel,
+            "h": sentinel,
+            "r": sentinel,
+            "wd": sentinel,
+        }
+    }
+
+    temp = MobileAlertsTemperatureSensor(
+        mock_coord,
+        {CONF_DEVICE_ID: "A1", CONF_NAME: "Test", CONF_TYPE: "t1"},
+        sample_device_info,
+    )
+    hum = MobileAlertsHumiditySensor(
+        mock_coord,
+        {CONF_DEVICE_ID: "A1", CONF_NAME: "Test", CONF_TYPE: "h"},
+        sample_device_info,
+    )
+    rain = MobileAlertsRainSensor(
+        mock_coord,
+        {CONF_DEVICE_ID: "A1", CONF_NAME: "Test", CONF_TYPE: "r"},
+        sample_device_info,
+    )
+    wd_deg = MobileAlertsWindDirectionDegreesSensor(
+        mock_coord,
+        {CONF_DEVICE_ID: "A1", CONF_NAME: "Test", CONF_TYPE: "wd_degrees"},
+        sample_device_info,
+    )
+
+    for entity in (temp, hum, rain, wd_deg):
+        assert entity._attr_available is True
+        assert entity._attr_native_value is None
+        assert entity.native_value is None
+
+
+@pytest.mark.asyncio
+async def test_pressure_and_co2_sensors(sample_device_info):
+    """Test dedicated pressure (hPa) and CO2 (ppm) sensor classes."""
+    mock_coord = MagicMock()
+    mock_coord.get_reading.return_value = {
+        "measurement": {"ap": 1013.2, "ppm": 850}
+    }
+
+    pressure = MobileAlertsPressureSensor(
+        mock_coord,
+        {CONF_DEVICE_ID: "A1", CONF_NAME: "Weather", CONF_TYPE: "ap"},
+        sample_device_info,
+    )
+    assert pressure.device_class == SensorDeviceClass.ATMOSPHERIC_PRESSURE
+    assert pressure.native_unit_of_measurement == UnitOfPressure.HPA
+    assert pressure.entity_description.translation_key == "pressure"
+    assert pressure.native_value == 1013.2
+
+    pressure._attr_native_value = 0
+    assert pressure.native_value is None
+    pressure._attr_native_value = 43530
+    assert pressure.native_value is None
+
+    co2 = MobileAlertsCO2Sensor(
+        mock_coord,
+        {CONF_DEVICE_ID: "A1", CONF_NAME: "Indoor", CONF_TYPE: "ppm"},
+        sample_device_info,
+    )
+    assert co2.device_class == SensorDeviceClass.CO2
+    assert co2.native_unit_of_measurement == CONCENTRATION_PARTS_PER_MILLION
+    assert co2.entity_description.translation_key == "air_quality"
+    assert co2.native_value == 850.0
+
+    co2._attr_native_value = 0
+    assert co2.native_value == 0.0
+    co2._attr_native_value = -5
+    assert co2.native_value is None
+    co2._attr_native_value = 65295
+    assert co2.native_value is None
+
+
+@pytest.mark.asyncio
+async def test_translation_keys_match_entity_descriptions(sample_device_info):
+    """Subclassed multi-channel temperature/humidity sensors keep specific translation keys."""
+    mock_coord = MagicMock()
+    mock_coord.get_reading.return_value = {
+        "measurement": {"t2": 18.4, "h3havg": 52.0}
+    }
+
+    temp_t2 = MobileAlertsTemperatureSensor(
+        mock_coord,
+        {CONF_DEVICE_ID: "A1", CONF_NAME: "Test", CONF_TYPE: "t2"},
+        sample_device_info,
+    )
+    assert temp_t2._attr_translation_key == "temperature_t2"
+    assert temp_t2.entity_description.translation_key == "temperature_t2"
+
+    hum_avg = MobileAlertsHumiditySensor(
+        mock_coord,
+        {CONF_DEVICE_ID: "A1", CONF_NAME: "Test", CONF_TYPE: "h3havg"},
+        sample_device_info,
+    )
+    assert hum_avg._attr_translation_key == "humidity_3h_avg"
+    assert hum_avg.entity_description.translation_key == "humidity_3h_avg"

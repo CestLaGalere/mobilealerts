@@ -22,9 +22,13 @@
       "invalid_device_id_format": "Device ID must be 12 characters long",
       "device_not_found": "Device not found",
       "device_offline_no_data": "Device is offline or has not sent any data yet",
+      "device_not_supported": "Device not yet supported. Please open an issue on GitHub and include the full log output.",
       "sensor_type_detection_failed": "Sensor type could not be detected",
       "api_error": "API error during validation",
       "unknown_error": "An unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
     }
   },
   "entity": {
@@ -61,6 +65,18 @@
       },
       "humidity_4": {
         "name": "Humidity 4"
+      },
+      "humidity_3h_avg": {
+        "name": "Humidity (3h Avg)"
+      },
+      "humidity_24h_avg": {
+        "name": "Humidity (24h Avg)"
+      },
+      "humidity_7d_avg": {
+        "name": "Humidity (7d Avg)"
+      },
+      "humidity_30d_avg": {
+        "name": "Humidity (30d Avg)"
       },
       "external_humidity": {
         "name": "External Humidity"
@@ -121,6 +137,15 @@
       },
       "kp4_count": {
         "name": "Key Press 4 Counter"
+      },
+      "ac_power": {
+        "name": "AC Power"
+      },
+      "water": {
+        "name": "Water Detected"
+      },
+      "contact": {
+        "name": "Window Contact"
       }
     },
     "binary_sensor": {

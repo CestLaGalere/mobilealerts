@@ -443,3 +443,60 @@ class TestDeviceModelDetection:
             assert isinstance(model_info["measurement_keys"], set)
             assert isinstance(model_info["description"], str)
             assert isinstance(model_info["manufacturer"], str)
+
+    def test_device_id_prefix_disambiguation(self):
+        """Hardware ID prefix narrows ambiguous measurement-only matches."""
+        # t1 + t2 matches MA10101 (ID01) and MA10870 (ID17)
+        matches_ma10870 = find_all_matching_models(
+            {"t1": 19.5, "t2": 0}, device_id="173A4E25ABCD"
+        )
+        assert [m_id for m_id, _ in matches_ma10870] == ["MA10870"]
+
+        matches_ma10101 = find_all_matching_models(
+            {"t1": 21.0, "t2": 18.0}, device_id="014CB1C85C61"
+        )
+        assert [m_id for m_id, _ in matches_ma10101] == ["MA10101"]
+
+        # t1 + t2 + h matches MA10300 (ID09), MA10350 (ID04), MA10700 (ID06)
+        measurement_t1_t2_h = {"t1": 21.0, "t2": 19.0, "h": 55.0}
+        assert [
+            m_id
+            for m_id, _ in find_all_matching_models(
+                measurement_t1_t2_h, device_id="090005AC99E2"
+            )
+        ] == ["MA10300"]
+        assert [
+            m_id
+            for m_id, _ in find_all_matching_models(
+                measurement_t1_t2_h, device_id="041234567890"
+            )
+        ] == ["MA10350"]
+        assert [
+            m_id
+            for m_id, _ in find_all_matching_models(
+                measurement_t1_t2_h, device_id="061234567890"
+            )
+        ] == ["MA10700"]
+        assert DEVICE_MODELS["MA10700"]["measurement_keys"] == {"t1", "t2", "h"}
+
+        # Unknown prefix keeps all measurement-matching candidates
+        fallback = find_all_matching_models(
+            measurement_t1_t2_h, device_id="FF0000000000"
+        )
+        assert {m_id for m_id, _ in fallback} == {"MA10300", "MA10350", "MA10700"}
+
+    def test_metadata_and_alert_keys_ignored_in_detection(self):
+        """Undocumented status/alert keys like sc and rr must not break detection."""
+        rain_measurement = {
+            "idx": 42,
+            "ts": 1763190000,
+            "c": 1763190010,
+            "lb": False,
+            "t1": 14.2,
+            "r": 12.9,
+            "rf": 50,
+            "sc": True,
+            "rr": 0.258,
+        }
+        matches = find_all_matching_models(rain_measurement, device_id="085B1FFBDFDE")
+        assert [m_id for m_id, _ in matches] == ["MA10650"]

@@ -13,7 +13,7 @@
         "title": "选择设备型号",
         "description": "设备 ID 无法唯一识别，因为多个型号具有相同的传感器。\n\n设备 ID: {device_id}\n\n请选择您的设备类型:",
         "data": {
-          "model": "您有哪种设备?"
+          "model_id": "您有哪种设备?"
         }
       }
     },
@@ -26,6 +26,9 @@
       "sensor_type_detection_failed": "无法检测到传感器类型",
       "api_error": "验证期间出现 API 错误",
       "unknown_error": "发生意外错误"
+    },
+    "abort": {
+      "already_configured": "设备已配置"
     }
   },
   "entity": {
@@ -62,6 +65,18 @@
       },
       "humidity_4": {
         "name": "湿度 4"
+      },
+      "humidity_3h_avg": {
+        "name": "湿度（3小时平均）"
+      },
+      "humidity_24h_avg": {
+        "name": "湿度（24小时平均）"
+      },
+      "humidity_7d_avg": {
+        "name": "湿度（7天平均）"
+      },
+      "humidity_30d_avg": {
+        "name": "湿度（30天平均）"
       },
       "external_humidity": {
         "name": "外部湿度"
@@ -122,6 +137,15 @@
       },
       "kp4_count": {
         "name": "按键 4 计数"
+      },
+      "ac_power": {
+        "name": "交流电源"
+      },
+      "water": {
+        "name": "检测到水"
+      },
+      "contact": {
+        "name": "窗户接触"
       }
     },
     "binary_sensor": {

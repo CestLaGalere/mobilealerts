@@ -13,7 +13,7 @@
         "title": "Sélectionner le modèle d'appareil",
         "description": "L'ID de l'appareil ne peut pas être identifié de manière unique car plusieurs modèles ont les mêmes capteurs.\n\nID de l'appareil: {device_id}\n\nVeuillez sélectionner votre type d'appareil:",
         "data": {
-          "model": "Quel appareil avez-vous?"
+          "model_id": "Quel appareil avez-vous?"
         }
       }
     },
@@ -26,6 +26,9 @@
       "sensor_type_detection_failed": "Le type de capteur n'a pas pu être détecté",
       "api_error": "Erreur API lors de la validation",
       "unknown_error": "Une erreur inattendue s'est produite"
+    },
+    "abort": {
+      "already_configured": "L'appareil est déjà configuré"
     }
   },
   "entity": {
@@ -62,6 +65,18 @@
       },
       "humidity_4": {
         "name": "Humidité 4"
+      },
+      "humidity_3h_avg": {
+        "name": "Humidité (moyenne 3h)"
+      },
+      "humidity_24h_avg": {
+        "name": "Humidité (moyenne 24h)"
+      },
+      "humidity_7d_avg": {
+        "name": "Humidité (moyenne 7j)"
+      },
+      "humidity_30d_avg": {
+        "name": "Humidité (moyenne 30j)"
       },
       "external_humidity": {
         "name": "Humidité externe"
@@ -122,6 +137,15 @@
       },
       "kp4_count": {
         "name": "Compteur de touche 4"
+      },
+      "ac_power": {
+        "name": "Courant secteur"
+      },
+      "water": {
+        "name": "Eau détectée"
+      },
+      "contact": {
+        "name": "Contact de fenêtre"
       }
     },
     "binary_sensor": {

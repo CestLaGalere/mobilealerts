@@ -6,11 +6,11 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
+from homeassistant.const import CONF_DEVICE_ID, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
+from .const import CONF_PHONE_ID, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,7 +74,29 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        hass.data[DOMAIN]["entries"].pop(entry.entry_id, None)
+        domain_data = hass.data.get(DOMAIN, {})
+        domain_data.get("entries", {}).pop(entry.entry_id, None)
+
+        device_id = entry.data.get(CONF_DEVICE_ID)
+        if device_id:
+            domain_data.get("prefetched_device_data", {}).pop(device_id, None)
+
+        coordinators_by_entry = domain_data.get("coordinators_by_entry", {})
+        coordinator = coordinators_by_entry.pop(entry.entry_id, None)
+        if coordinator is not None:
+            if device_id and hasattr(coordinator, "_api"):
+                coordinator._api.unregister_device(device_id)
+            if not any(
+                remaining is coordinator
+                for remaining in coordinators_by_entry.values()
+            ):
+                phone_id = entry.data.get(CONF_PHONE_ID, "ui_devices")
+                coordinators = domain_data.get("coordinators", {})
+                if coordinators.get(phone_id) is coordinator:
+                    coordinators.pop(phone_id, None)
+                else:
+                    for key in [k for k, v in coordinators.items() if v is coordinator]:
+                        coordinators.pop(key, None)
 
     return unload_ok
 
@@ -111,10 +133,14 @@ async def _register_services(hass: HomeAssistant) -> None:
                 "error": "No Mobile Alerts entries found",
             }
 
-        # Trigger refresh and collect data from all entries
+        # Refresh each unique coordinator once and collect data from all entries
         results = {}
+        refreshed_coordinators: set[int] = set()
         for entry_id, coordinator in coordinators_by_entry.items():
-            await coordinator.async_request_refresh()
+            coord_id = id(coordinator)
+            if coord_id not in refreshed_coordinators:
+                await coordinator.async_request_refresh()
+                refreshed_coordinators.add(coord_id)
             results[entry_id] = coordinator.data
 
         return {
