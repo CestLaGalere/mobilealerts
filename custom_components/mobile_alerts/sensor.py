@@ -1,5 +1,6 @@
 """Support for the Mobile Alerts service."""
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Final
@@ -336,42 +337,80 @@ async def async_setup_entry(
             .pop(device_id, None)
         )
 
-        if phone_id not in hass.data[DOMAIN]["coordinators"]:
-            # Create new API instance for new coordinator
-            api = MobileAlertsApi(
-                phone_id=phone_id,
-                session=async_get_clientsession(hass),
-            )
-            coordinator = MobileAlertsCoordinator(hass, api)
-            hass.data[DOMAIN]["coordinators"][phone_id] = coordinator
-            hass.data[DOMAIN]["coordinators_by_entry"][config_entry.entry_id] = (
-                coordinator
-            )
-            if prefetched is not None:
-                api.seed_device_data(prefetched)
-                coordinator.async_set_updated_data({"devices": api._data})
+        setup_locks = hass.data[DOMAIN].setdefault("setup_locks", {})
+        setup_lock = setup_locks.setdefault(phone_id, asyncio.Lock())
+
+        async with setup_lock:
+            if phone_id not in hass.data[DOMAIN]["coordinators"]:
+                # Create new API instance for new coordinator
+                api = MobileAlertsApi(
+                    phone_id=phone_id,
+                    session=async_get_clientsession(hass),
+                )
+                coordinator = MobileAlertsCoordinator(hass, api)
+                if prefetched is not None:
+                    api.seed_device_data(prefetched)
+                    coordinator.async_set_updated_data({"devices": api._data})
+                else:
+                    # Pre-register all enabled config entries sharing this phone_id so
+                    # startup fetches all configured devices in one batch request.
+                    if hasattr(hass.config_entries, "async_entries"):
+                        for existing_entry in hass.config_entries.async_entries(
+                            DOMAIN
+                        ):
+                            if (
+                                getattr(existing_entry, "disabled_by", None)
+                                is not None
+                            ):
+                                continue
+                            existing_phone_id = (
+                                existing_entry.data.get(CONF_PHONE_ID, "")
+                                or "ui_devices"
+                            )
+                            existing_device_id = existing_entry.data.get(
+                                CONF_DEVICE_ID
+                            )
+                            if (
+                                existing_phone_id == phone_id
+                                and existing_device_id
+                                and existing_device_id not in api._device_ids
+                            ):
+                                api._device_ids.append(existing_device_id)
+                    if device_id not in api._device_ids:
+                        api._device_ids.append(device_id)
+                    await coordinator.async_config_entry_first_refresh()
+                hass.data[DOMAIN]["coordinators"][phone_id] = coordinator
+                hass.data[DOMAIN]["coordinators_by_entry"][config_entry.entry_id] = (
+                    coordinator
+                )
+                _LOGGER.debug("Created new coordinator for phone_id=%s", phone_id)
             else:
-                if device_id not in api._device_ids:
-                    api._device_ids.append(device_id)
-                await coordinator.async_config_entry_first_refresh()
-            _LOGGER.debug("Created new coordinator for phone_id=%s", phone_id)
-        else:
-            # Reuse existing coordinator and API
-            coordinator = hass.data[DOMAIN]["coordinators"][phone_id]
-            hass.data[DOMAIN]["coordinators_by_entry"][config_entry.entry_id] = (
-                coordinator
-            )
-            if prefetched is not None:
-                coordinator._api.seed_device_data(prefetched)
-                coordinator.async_set_updated_data({"devices": coordinator._api._data})
-            else:
-                # Register device and fetch its data
-                await coordinator._api.register_device(device_id)
-            _LOGGER.debug(
-                "Reusing existing coordinator for phone_id=%s, registered device %s",
-                phone_id,
-                device_id,
-            )
+                # Reuse existing coordinator and API
+                coordinator = hass.data[DOMAIN]["coordinators"][phone_id]
+                hass.data[DOMAIN]["coordinators_by_entry"][config_entry.entry_id] = (
+                    coordinator
+                )
+                if prefetched is not None:
+                    coordinator._api.seed_device_data(prefetched)
+                    coordinator.async_set_updated_data(
+                        {"devices": coordinator._api._data}
+                    )
+                elif not any(
+                    d.get("deviceid") == device_id
+                    for d in (coordinator._api._data or ())
+                ):
+                    # Register device and fetch its data
+                    await coordinator._api.register_device(device_id)
+                    coordinator.async_set_updated_data(
+                        {"devices": coordinator._api._data}
+                    )
+                elif device_id not in coordinator._api._device_ids:
+                    coordinator._api._device_ids.append(device_id)
+                _LOGGER.debug(
+                    "Reusing existing coordinator for phone_id=%s, registered device %s",
+                    phone_id,
+                    device_id,
+                )
 
         # Get model info for this device
         model_info = DEVICE_MODELS.get(model_id, {})

@@ -368,3 +368,25 @@ async def test_fetch_batch_rate_limit_and_forbidden_raise_api_error(
     ):
         cls.return_value = session
         await api._fetch_batch()
+
+
+@pytest.mark.asyncio
+async def test_fetch_batch_preserves_existing_seeded_devices(fake_device_ids):
+    """``_fetch_batch`` must merge returned devices without dropping other seeded devices."""
+    api = MobileAlertsApi(phone_id="ui_devices")
+    d1_old = {"deviceid": fake_device_ids[0], "measurement": {"t1": 18.0}}
+    d2_seeded = {"deviceid": fake_device_ids[1], "measurement": {"t1": 21.5}}
+    api.seed_device_data(d1_old)
+    api.seed_device_data(d2_seeded)
+
+    # Batch response only updates device 0 (e.g. concurrent registration race or partial response)
+    d1_new = {"deviceid": fake_device_ids[0], "measurement": {"t1": 19.2}}
+    response = _make_response(200, {"success": True, "devices": [d1_new]})
+    session = _make_session(response)
+
+    with patch("custom_components.mobile_alerts.api.aiohttp.ClientSession") as cls:
+        cls.return_value = session
+        await api._fetch_batch()
+
+    assert api.get_reading(fake_device_ids[0]) == d1_new
+    assert api.get_reading(fake_device_ids[1]) == d2_seeded

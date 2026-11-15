@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 import pytest
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import (
-    CONCENTRATION_PARTS_PER_MILLION,
     CONF_DEVICE_ID,
     CONF_NAME,
     CONF_TYPE,
@@ -14,6 +13,13 @@ from homeassistant.const import (
     EntityCategory,
     UnitOfPressure,
 )
+
+try:
+    from homeassistant.const import UnitOfRatio
+
+    _PPM_UNIT = UnitOfRatio.PARTS_PER_MILLION
+except ImportError:
+    from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION as _PPM_UNIT
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from custom_components.mobile_alerts.api import MobileAlertsApi
@@ -630,7 +636,7 @@ async def test_pressure_and_co2_sensors(sample_device_info):
         sample_device_info,
     )
     assert co2.device_class == SensorDeviceClass.CO2
-    assert co2.native_unit_of_measurement == CONCENTRATION_PARTS_PER_MILLION
+    assert co2.native_unit_of_measurement == _PPM_UNIT
     assert co2.entity_description.translation_key == "air_quality"
     assert co2.native_value == 850.0
 
