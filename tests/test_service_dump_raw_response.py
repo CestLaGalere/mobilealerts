@@ -220,3 +220,43 @@ async def test_dump_raw_response_has_timestamp(
     # Try to parse as ISO format
     parsed = datetime.fromisoformat(response["timestamp"])
     assert parsed is not None
+
+
+@pytest.mark.asyncio
+async def test_dump_raw_response_deduplicates_shared_coordinator_refresh(
+    hass: HomeAssistant,
+):
+    """Entries sharing a single coordinator must trigger only one API refresh."""
+    shared_coordinator = MagicMock()
+    shared_coordinator.data = {
+        "devices": [
+            {"deviceid": "090005AC99E1", "measurement": {"t1": 20.0}},
+            {"deviceid": "090005AC99E2", "measurement": {"t1": 21.3}},
+        ]
+    }
+    shared_coordinator.async_request_refresh = AsyncMock()
+
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN]["coordinators_by_entry"] = {
+        "entry_1": shared_coordinator,
+        "entry_2": shared_coordinator,
+    }
+
+    from custom_components.mobile_alerts import _register_services
+
+    await _register_services(hass)
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "dump_raw_response",
+        {},
+        blocking=True,
+        return_response=True,
+    )
+
+    assert response is not None
+    assert response["success"] is True
+    assert response["entries_count"] == 2
+    assert "entry_1" in response["data"]
+    assert "entry_2" in response["data"]
+    shared_coordinator.async_request_refresh.assert_called_once()

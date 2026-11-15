@@ -3,11 +3,6 @@
 import logging
 from typing import Any, Final
 
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo, DeviceRegistry
-
-from .const import DOMAIN
-
 _LOGGER: Final = logging.getLogger(__name__)
 
 # Device model mapping based on mobile-alerts.eu website and API documentation
@@ -21,11 +16,13 @@ _LOGGER: Final = logging.getLogger(__name__)
 # - w: Window/door contact
 # - ppm: CO2/air quality
 # - kp*t: Key press type, kp*c: Key press counter
+# - prefix_ids: 2-char hex device ID prefixes from API docs (ID01..ID20)
 DEVICE_MODELS: Final = {
     "MA10100": {
         "name": "MA 10100",
         "display_name": "Wireless Thermometer",
         "measurement_keys": {"t1"},
+        "prefix_ids": {"02"},
         "description": "Temperature sensor",
         "manufacturer": "Mobile Alerts",
     },
@@ -33,6 +30,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10101",
         "display_name": "Wireless Thermometer with Cable Sensor",
         "measurement_keys": {"t1", "t2"},
+        "prefix_ids": {"01", "0F"},
         "description": "Internal and external temperature",
         "manufacturer": "Mobile Alerts",
     },
@@ -40,6 +38,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10120",
         "display_name": "Wireless Thermometer",
         "measurement_keys": {"t1"},
+        "prefix_ids": {"20"},
         "description": "Temperature sensor",
         "manufacturer": "Mobile Alerts",
     },
@@ -47,6 +46,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10200",
         "display_name": "Wireless Thermo-Hygrometer",
         "measurement_keys": {"t1", "h"},
+        "prefix_ids": {"03"},
         "description": "Temperature and humidity",
         "manufacturer": "Mobile Alerts",
     },
@@ -54,6 +54,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10230",
         "display_name": "Wireless Room Climate Station",
         "measurement_keys": {"t1", "h", "h3havg", "h24havg", "h7davg", "h30davg"},
+        "prefix_ids": {"12"},
         "description": "Temperature and humidity",
         "manufacturer": "Mobile Alerts",
     },
@@ -61,6 +62,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10238",
         "display_name": "Wireless Air Pressure Monitor",
         "measurement_keys": {"t1", "h", "ap"},
+        "prefix_ids": {"18"},
         "description": "Temperature, humidity, and air pressure",
         "manufacturer": "Mobile Alerts",
     },
@@ -68,6 +70,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10241",
         "display_name": "Wireless Thermo-Hygrometer",
         "measurement_keys": {"t1", "h"},
+        "prefix_ids": {"0E"},
         "description": "Temperature and humidity",
         "manufacturer": "Mobile Alerts",
     },
@@ -75,6 +78,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10300 / MA 10320",
         "display_name": "Wireless Thermo-Hygrometer with Cable Sensor",
         "measurement_keys": {"t1", "t2", "h"},
+        "prefix_ids": {"09"},
         "description": "Temperature (internal/cable) and humidity",
         "manufacturer": "Mobile Alerts",
     },
@@ -86,6 +90,7 @@ DEVICE_MODELS: Final = {
             "t2",
             "h",
         },  # t2 = water level (NOT cable temperature like MA10300)
+        "prefix_ids": {"04"},
         "description": "Temperature, humidity, and water detection",
         "manufacturer": "Mobile Alerts",
     },
@@ -93,6 +98,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10402",
         "display_name": "Wireless CO2 Monitor",
         "measurement_keys": {"t1", "t2", "h", "ppm"},
+        "prefix_ids": {"05"},
         "description": "Temperature, humidity, and CO2 monitoring",
         "manufacturer": "Mobile Alerts",
     },
@@ -100,6 +106,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10410",
         "display_name": "Weather Station",
         "measurement_keys": {"t1", "t2", "h", "h2"},
+        "prefix_ids": {"07"},
         "description": "Temperature indoor, humidity indoor, temperature outdoor, humidity outdoor",
         "manufacturer": "Mobile Alerts",
     },
@@ -114,6 +121,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10650",
         "display_name": "Wireless Rain Gauge",
         "measurement_keys": {"t1", "r", "rf"},
+        "prefix_ids": {"08"},
         "description": "Rainfall measurement and flip counter",
         "manufacturer": "Mobile Alerts",
     },
@@ -121,13 +129,15 @@ DEVICE_MODELS: Final = {
         "name": "MA 10660",
         "display_name": "Wireless Anemometer",
         "measurement_keys": {"ws", "wg", "wd"},
+        "prefix_ids": {"0B"},
         "description": "Wind speed, gust, and direction",
         "manufacturer": "Mobile Alerts",
     },
     "MA10700": {
         "name": "MA 10700",
         "display_name": "Wireless Thermo-Hygrometer with Pool Sensor",
-        "measurement_keys": {"t1", "h1", "t2"},
+        "measurement_keys": {"t1", "t2", "h"},
+        "prefix_ids": {"06"},
         "description": "Temperature, humidity, and pool temperature",
         "manufacturer": "Mobile Alerts",
     },
@@ -135,6 +145,7 @@ DEVICE_MODELS: Final = {
         "name": "MA 10800",
         "display_name": "Wireless Contact Sensor",
         "measurement_keys": {"w"},
+        "prefix_ids": {"10"},
         "description": "Window/door contact detection",
         "manufacturer": "Mobile Alerts",
     },
@@ -143,6 +154,7 @@ DEVICE_MODELS: Final = {
         "display_name": "Wireless Voltage Monitor",
         "manufacturer": "Mobile Alerts",
         "measurement_keys": {"t1", "t2"},  # t2 = AC power status (0=on, 1=off)
+        "prefix_ids": {"17"},
         "description": "Temperature and AC mains power monitoring",
     },
     "MA10880": {
@@ -158,6 +170,7 @@ DEVICE_MODELS: Final = {
             "kp4t",
             "kp4c",
         },
+        "prefix_ids": {"15"},
         "description": "4-channel wireless switch with key press monitoring",
         "manufacturer": "Mobile Alerts",
     },
@@ -165,6 +178,7 @@ DEVICE_MODELS: Final = {
         "name": "TFA 30.3060.01",
         "display_name": "TFA Dostmann KLIMA@HOME Thermo-Hygrometer with 3 sensors",
         "measurement_keys": {"t1", "t2", "t3", "t4", "h1", "h2", "h3", "h4"},
+        "prefix_ids": {"11"},
         "description": "Temperature, humidity 1 internal sensor and up to 3 external sensors",
         "manufacturer": "TFA Dostmann",
     },
@@ -177,17 +191,93 @@ DEVICE_MODELS: Final = {
     },
 }
 
+_METADATA_AND_ALERT_KEYS: Final = frozenset(
+    {
+        "idx",
+        "ts",
+        "c",
+        "lb",
+        "sc",
+        "rr",
+        "b",
+        "rb",
+        "wds",
+        "wo",
+        "woa",
+        "wc",
+        "wca",
+        "wot",
+        "wota",
+        "wots",
+        "wct",
+        "wcta",
+        "wcts",
+        "apcr",
+        "apcrdt",
+        "apcrt",
+        "apcf",
+        "apcfdt",
+        "apcft",
+    }
+)
+
+_ALERT_SUFFIXES: Final = (
+    "hi",
+    "lo",
+    "hise",
+    "lose",
+    "hiee",
+    "loee",
+    "his",
+    "los",
+    "aactive",
+    "as",
+    "active",
+    "st",
+    "nsm",
+    "gt",
+    "gr",
+)
+
+
+def _filter_by_device_prefix(
+    matches: list[tuple[str, dict[str, Any]]],
+    device_id: str | None,
+) -> list[tuple[str, dict[str, Any]]]:
+    """Narrow ambiguous matches using the 2-char hex device ID prefix."""
+    if not device_id or len(device_id) < 2 or len(matches) <= 1:
+        return matches
+
+    prefix = device_id[:2].upper()
+    prefix_matches = [
+        (model_id, model_info)
+        for model_id, model_info in matches
+        if prefix in model_info.get("prefix_ids", set())
+    ]
+    if prefix_matches:
+        _LOGGER.debug(
+            "Narrowed model matches for device %s (prefix %s): %s",
+            device_id,
+            prefix,
+            [model_id for model_id, _ in prefix_matches],
+        )
+        return prefix_matches
+    return matches
+
 
 def find_all_matching_models(
     measurement: dict[str, Any] | None,
+    device_id: str | None = None,
 ) -> list[tuple[str, dict[str, Any]]]:
     """Find ALL device models that match the given measurement data.
 
     Tries exact match first, then falls back to subset matching (with scoring).
-    Used by config_flow to detect devices and handle ambiguous cases.
+    When ``device_id`` is provided and multiple models match, uses the
+    2-character hardware prefix (ID01..ID20) to disambiguate if possible.
 
     Args:
         measurement: The measurement dict from API response or None
+        device_id: Optional 12-char hex device ID for prefix disambiguation
 
     Returns:
         List of (model_id, model_info) tuples that match.
@@ -198,31 +288,13 @@ def find_all_matching_models(
     if not measurement:
         return []
 
-    # Get available measurement keys
-    keys = set(measurement.keys())
-
-    # Remove metadata keys
-    keys.discard("idx")
-    keys.discard("ts")
-    keys.discard("c")
-    keys.discard("lb")
-
-    # Remove alert flag keys
-    alert_suffixes = [
-        "hi",
-        "lo",
-        "hise",
-        "lose",
-        "hiee",
-        "loee",
-        "his",
-        "los",
-        "aactive",
-        "as",
-        "active",
-        "st",
-    ]
-    keys = {k for k in keys if not any(k.endswith(suffix) for suffix in alert_suffixes)}
+    # Remove metadata, non-sensor status fields, and alert flag keys
+    keys = {
+        k
+        for k in measurement
+        if k not in _METADATA_AND_ALERT_KEYS
+        and not any(k.endswith(suffix) for suffix in _ALERT_SUFFIXES)
+    }
 
     if not keys:
         return []
@@ -240,14 +312,14 @@ def find_all_matching_models(
                 keys,
             )
 
-    # If we have exact matches, return all of them
+    # If we have exact matches, return all of them (disambiguated by prefix if possible)
     if exact_matches:
         _LOGGER.debug(
             "Found %d exact match(es): %s",
             len(exact_matches),
             [model_id for model_id, _ in exact_matches],
         )
-        return exact_matches
+        return _filter_by_device_prefix(exact_matches, device_id)
 
     # Try subset match (device has at least these keys)
     # Use scoring to prefer models with more matching keys
@@ -300,7 +372,7 @@ def find_all_matching_models(
             best_score,
             [model_id for model_id, _ in subset_matches],
         )
-        return subset_matches
+        return _filter_by_device_prefix(subset_matches, device_id)
 
     # Unknown device
     _LOGGER.warning(
@@ -350,84 +422,3 @@ def get_sensor_type_override(model_id: str, measurement_key: str) -> str | None:
 
     # No override - use measurement_key as sensor type (default behavior)
     return None
-
-
-class MobileAlertsDevice:
-    """Represents a Mobile Alerts device."""
-
-    def __init__(
-        self,
-        device_id: str,
-        device_type: str,
-        name: str,
-        phone_id: str | None = None,
-        manufacturer: str | None = None,
-    ) -> None:
-        """Initialize device."""
-        self.device_id = device_id
-        self.device_type = device_type
-        self.name = name
-        self.phone_id = phone_id
-        self.manufacturer = manufacturer or "Mobile Alerts"
-
-    @property
-    def unique_id(self) -> str:
-        """Return unique identifier for this device."""
-        return f"{DOMAIN}_{self.device_id}"
-
-    def get_device_info(self) -> DeviceInfo:
-        """Return device info for Home Assistant device registry."""
-        identifiers = {(DOMAIN, self.device_id)}
-
-        return DeviceInfo(
-            identifiers=identifiers,
-            name=self.name,
-            manufacturer=self.manufacturer,
-            model=self.device_type,
-        )
-
-
-class MobileAlertsDeviceManager:
-    """Manage Mobile Alerts devices in Home Assistant."""
-
-    def __init__(self, hass: HomeAssistant, device_registry: DeviceRegistry) -> None:
-        """Initialize device manager."""
-        self._hass = hass
-        self._device_registry = device_registry
-        self._devices: dict[str, MobileAlertsDevice] = {}
-
-    def add_device(
-        self,
-        device_id: str,
-        device_type: str,
-        name: str,
-        phone_id: str | None = None,
-        manufacturer: str | None = None,
-    ) -> MobileAlertsDevice:
-        """Add or update a device."""
-        device = MobileAlertsDevice(
-            device_id=device_id,
-            device_type=device_type,
-            name=name,
-            phone_id=phone_id,
-            manufacturer=manufacturer,
-        )
-
-        self._devices[device_id] = device
-        _LOGGER.debug("Device added: %s (%s)", name, device_id)
-
-        return device
-
-    def get_device(self, device_id: str) -> MobileAlertsDevice | None:
-        """Get device by ID."""
-        return self._devices.get(device_id)
-
-    def get_all_devices(self) -> list[MobileAlertsDevice]:
-        """Get all registered devices."""
-        return list(self._devices.values())
-
-    def remove_device(self, device_id: str) -> None:
-        """Remove a device."""
-        if device_id in self._devices:
-            del self._devices[device_id]
-            _LOGGER.debug("Device removed: %s", device_id)

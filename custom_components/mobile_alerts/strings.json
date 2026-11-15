@@ -28,6 +28,7 @@
       "unknown_error": "An unexpected error occurred"
     },
     "abort": {
+      "already_configured": "Device is already configured",
       "not_implemented": "Options not yet implemented"
     }
   },
@@ -65,6 +66,18 @@
       },
       "humidity_4": {
         "name": "Humidity 4"
+      },
+      "humidity_3h_avg": {
+        "name": "Humidity (3h Avg)"
+      },
+      "humidity_24h_avg": {
+        "name": "Humidity (24h Avg)"
+      },
+      "humidity_7d_avg": {
+        "name": "Humidity (7d Avg)"
+      },
+      "humidity_30d_avg": {
+        "name": "Humidity (30d Avg)"
       },
       "external_humidity": {
         "name": "External Humidity"
@@ -125,6 +138,15 @@
       },
       "kp4_count": {
         "name": "Key Press 4 Counter"
+      },
+      "ac_power": {
+        "name": "AC Power"
+      },
+      "water": {
+        "name": "Water Detected"
+      },
+      "contact": {
+        "name": "Window Contact"
       }
     },
     "binary_sensor": {

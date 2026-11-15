@@ -15,12 +15,15 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    CONCENTRATION_PARTS_PER_MILLION,
     CONF_DEVICE_ID,
     CONF_NAME,
     CONF_TYPE,
     PERCENTAGE,
     STATE_UNKNOWN,
+    EntityCategory,
     UnitOfLength,
+    UnitOfPressure,
     UnitOfSpeed,
     UnitOfTemperature,
 )
@@ -29,10 +32,19 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import ATTRIBUTION
+from .const import ATTRIBUTION, INVALID_MEASUREMENT_VALUES
 from .coordinator import MobileAlertsCoordinator
 
 _LOGGER: Final = logging.getLogger(__name__)
+
+
+def _is_invalid_measurement(value: object) -> bool:
+    """Return True if value is a Mobile Alerts error sentinel (not connected / out of range)."""
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and value in INVALID_MEASUREMENT_VALUES
+    )
 
 
 class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
@@ -83,6 +95,10 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
             "h2": "humidity_2",
             "h3": "humidity_3",
             "h4": "humidity_4",
+            "h3havg": "humidity_3h_avg",
+            "h24havg": "humidity_24h_avg",
+            "h7davg": "humidity_7d_avg",
+            "h30davg": "humidity_30d_avg",
             "r": "rain",
             "rf": "rain_flips",
             "ws": "wind_speed",
@@ -114,6 +130,10 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
             "h2": "Humidity 2",
             "h3": "Humidity 3",
             "h4": "Humidity 4",
+            "h3havg": "Humidity (3h Avg)",
+            "h24havg": "Humidity (24h Avg)",
+            "h7davg": "Humidity (7d Avg)",
+            "h30davg": "Humidity (30d Avg)",
             "r": "Rain",
             "rf": "Rain Counter",
             "ws": "Wind Speed",
@@ -193,6 +213,9 @@ class MobileAlertsSensor(CoordinatorEntity, SensorEntity):
             state = measurement_data[self._type]
             available = True
 
+        if _is_invalid_measurement(state):
+            state = None
+
         self._attr_native_value = state
         self._attr_available = available
 
@@ -219,7 +242,7 @@ class MobileAlertsTemperatureSensor(MobileAlertsSensor):
         self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
         self.entity_description = SensorEntityDescription(
             key=SensorDeviceClass.TEMPERATURE,
-            translation_key="temperature",
+            translation_key=self._attr_translation_key,
             device_class=SensorDeviceClass.TEMPERATURE,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
@@ -259,7 +282,7 @@ class MobileAlertsHumiditySensor(MobileAlertsSensor):
         self._attr_native_unit_of_measurement = PERCENTAGE
         self.entity_description = SensorEntityDescription(
             key=SensorDeviceClass.HUMIDITY,
-            translation_key="humidity",
+            translation_key=self._attr_translation_key,
             device_class=SensorDeviceClass.HUMIDITY,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=PERCENTAGE,
@@ -311,9 +334,11 @@ class MobileAlertsRainSensor(MobileAlertsSensor):
     @property
     def native_value(self) -> StateType:
         """Return the value reported by the sensor."""
+        if self._attr_native_value is None:
+            return None
         try:
-            return cast(float, self._attr_native_value)
-        except ValueError:
+            return float(cast(int | float | str, self._attr_native_value))
+        except (ValueError, TypeError):
             _LOGGER.warning(
                 "Invalid value for entity %s: %s",
                 self.entity_id,
@@ -502,6 +527,9 @@ class MobileAlertsWindDirectionDegreesSensor(MobileAlertsSensor):
             state = measurement_data["wd"]
             available = True
 
+        if _is_invalid_measurement(state):
+            state = None
+
         self._attr_native_value = state
         self._attr_available = available
 
@@ -570,6 +598,94 @@ class MobileAlertsWindGustSensor(MobileAlertsSensor):
             return None
 
 
+def _parse_float_sensor_value(
+    entity_id: str | None,
+    raw_value: object,
+    available: bool,
+    min_value: float,
+    strict_min: bool = False,
+) -> float | None:
+    """Parse a float sensor reading and reject invalid or out-of-range values."""
+    if raw_value is None or (not available and raw_value == STATE_UNKNOWN):
+        return None
+    try:
+        val = float(str(raw_value))
+        if _is_invalid_measurement(val):
+            return None
+        if (val <= min_value) if strict_min else (val < min_value):
+            return None
+        return val
+    except ValueError:
+        _LOGGER.warning("Invalid value for entity %s: %s", entity_id, raw_value)
+        return None
+
+
+class MobileAlertsPressureSensor(MobileAlertsSensor):
+    """Implementation of a Mobile Alerts atmospheric pressure sensor."""
+
+    def __init__(
+        self,
+        coordinator: MobileAlertsCoordinator,
+        device: dict[str, str],
+        device_info: DeviceInfo,
+    ) -> None:
+        """Initialize the atmospheric pressure sensor."""
+        super().__init__(coordinator, device=device, device_info=device_info)
+        self._device_class = SensorDeviceClass.ATMOSPHERIC_PRESSURE
+        self._attr_native_unit_of_measurement = UnitOfPressure.HPA
+        self.entity_description = SensorEntityDescription(
+            key=SensorDeviceClass.ATMOSPHERIC_PRESSURE,
+            translation_key=self._attr_translation_key or "pressure",
+            device_class=SensorDeviceClass.ATMOSPHERIC_PRESSURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPressure.HPA,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the atmospheric pressure in hPa."""
+        return _parse_float_sensor_value(
+            self.entity_id,
+            self._attr_native_value,
+            self._attr_available,
+            min_value=0.0,
+            strict_min=True,
+        )
+
+
+class MobileAlertsCO2Sensor(MobileAlertsSensor):
+    """Implementation of a Mobile Alerts CO2 air quality sensor."""
+
+    def __init__(
+        self,
+        coordinator: MobileAlertsCoordinator,
+        device: dict[str, str],
+        device_info: DeviceInfo,
+    ) -> None:
+        """Initialize the CO2 sensor."""
+        super().__init__(coordinator, device=device, device_info=device_info)
+        self._device_class = SensorDeviceClass.CO2
+        self._attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+        self.entity_description = SensorEntityDescription(
+            key=SensorDeviceClass.CO2,
+            translation_key=self._attr_translation_key or "air_quality",
+            device_class=SensorDeviceClass.CO2,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the CO2 concentration in ppm."""
+        return _parse_float_sensor_value(
+            self.entity_id,
+            self._attr_native_value,
+            self._attr_available,
+            min_value=0.0,
+            strict_min=False,
+        )
+
+
 class MobileAlertsBatterySensor(MobileAlertsSensor):
     """Implementation of a Mobile Alerts battery sensor."""
 
@@ -585,16 +701,19 @@ class MobileAlertsBatterySensor(MobileAlertsSensor):
         battery_device = device.copy()
         battery_device[CONF_TYPE] = "battery"
 
+        # Default icon before super().__init__ triggers extract_reading()
+        self._attr_icon = "mdi:battery"
         super().__init__(coordinator, device=battery_device, device_info=device_info)
         # Override unique_id to include sensor type to avoid conflicts
         self._attr_unique_id = f"{device[CONF_DEVICE_ID]}_battery"
         # Use generic sensor without device class for string values
         self._device_class = None
         self._attr_native_unit_of_measurement = None
-        # Set battery icon manually since we can't use device_class=BATTERY with string values
-        self._attr_icon = "mdi:battery"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self.entity_description = SensorEntityDescription(
             key="battery_status",
+            translation_key="battery",
+            entity_category=EntityCategory.DIAGNOSTIC,
             device_class=None,  # No device class for string-based status
             state_class=None,  # String values don't have state class
             native_unit_of_measurement=None,
@@ -610,16 +729,37 @@ class MobileAlertsBatterySensor(MobileAlertsSensor):
 
         if data is None:
             return
-        if "measurement" not in data:
+
+        measurement_data = data.get("measurement")
+        has_measurement = isinstance(measurement_data, dict)
+
+        # Official REST API exposes lowbat/lowbattery at device top-level and
+        # lb/lowbattery inside measurement for some devices.
+        low_battery_sources: list[tuple[dict[str, object], str]] = [
+            (data, "lowbat"),
+            (data, "lowbattery"),
+        ]
+        if has_measurement:
+            low_battery_sources.extend(
+                [
+                    (measurement_data, "lb"),
+                    (measurement_data, "lowbattery"),
+                ]
+            )
+
+        found_field = False
+        low_battery: object = None
+        for source, key in low_battery_sources:
+            if key in source and source[key] is not None:
+                low_battery = source[key]
+                found_field = True
+                break
+
+        if not has_measurement and not found_field:
             return
 
-        measurement_data = data["measurement"]
-
-        # Check for lowbattery field in the API response
-        if "lowbattery" in measurement_data:
+        if found_field:
             try:
-                low_battery = measurement_data["lowbattery"]
-
                 # Convert boolean or string to battery status
                 if isinstance(low_battery, bool):
                     self._attr_native_value = "Low" if low_battery else "OK"
@@ -678,9 +818,11 @@ class MobileAlertsLastSeenSensor(MobileAlertsSensor):
         # Override unique_id to include sensor type to avoid conflicts
         self._attr_unique_id = f"{device[CONF_DEVICE_ID]}_last_seen"
         self._device_class = SensorDeviceClass.TIMESTAMP
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self.entity_description = SensorEntityDescription(
             key=SensorDeviceClass.TIMESTAMP,
             translation_key="last_seen",
+            entity_category=EntityCategory.DIAGNOSTIC,
             device_class=SensorDeviceClass.TIMESTAMP,
             state_class=None,  # Timestamps don't have state class
         )
@@ -694,25 +836,44 @@ class MobileAlertsLastSeenSensor(MobileAlertsSensor):
 
         if data is None:
             return
-        if "measurement" not in data:
+
+        measurement_data = data.get("measurement")
+        has_measurement = isinstance(measurement_data, dict)
+        top_lastseen = data.get("lastseen")
+
+        if not has_measurement and top_lastseen is None:
             return
 
-        measurement_data = data["measurement"]
+        c_value = measurement_data.get("c") if has_measurement else None
+        ts_value = measurement_data.get("ts") if has_measurement else None
 
-        # Prefer 'c' (time received by gateway) over 'ts' (measurement timestamp).
-        # Some devices (e.g. MA10870) do not send 'c', so fall back to 'ts'.
-        if "c" in measurement_data:
-            timestamp_value = measurement_data.get("c")
+        # Prefer the newer of device-level 'lastseen' (gateway keepalive / last contact)
+        # and measurement 'c' (time received by gateway); fall back to 'ts' if neither is set.
+        if (
+            isinstance(top_lastseen, (int, float))
+            and not isinstance(top_lastseen, bool)
+            and isinstance(c_value, (int, float))
+            and not isinstance(c_value, bool)
+        ):
+            timestamp_value: object = max(top_lastseen, c_value)
+        elif top_lastseen is not None:
+            timestamp_value = top_lastseen
+        elif c_value is not None:
+            timestamp_value = c_value
         else:
-            timestamp_value = measurement_data.get("ts")
+            timestamp_value = ts_value
+
         if timestamp_value is not None:
             try:
                 # Convert timestamp to datetime object with timezone
-                if isinstance(timestamp_value, (int, float)):
+                if isinstance(timestamp_value, (int, float)) and not isinstance(
+                    timestamp_value, bool
+                ):
                     # Unix timestamp - add UTC timezone
                     self._attr_native_value = datetime.fromtimestamp(
                         timestamp_value, tz=timezone.utc
                     )
+                    self._attr_available = True
                 elif isinstance(timestamp_value, str):
                     # ISO string or other format
                     try:
@@ -728,8 +889,7 @@ class MobileAlertsLastSeenSensor(MobileAlertsSensor):
                         self._attr_native_value = datetime.fromtimestamp(
                             unix_ts, tz=timezone.utc
                         )
-
-                self._attr_available = True
+                    self._attr_available = True
 
             except (ValueError, TypeError, OSError) as e:
                 _LOGGER.warning(

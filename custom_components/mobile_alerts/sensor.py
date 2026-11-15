@@ -11,6 +11,7 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE_ID, CONF_NAME, CONF_TYPE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
@@ -28,9 +29,11 @@ from .device import DEVICE_MODELS, get_sensor_type_override
 from .sensor_classes import (
     MobileAlertsACPowerSensor,
     MobileAlertsBatterySensor,
+    MobileAlertsCO2Sensor,
     MobileAlertsContactSensor,
     MobileAlertsHumiditySensor,
     MobileAlertsLastSeenSensor,
+    MobileAlertsPressureSensor,
     MobileAlertsRainFlowSensor,
     MobileAlertsRainSensor,
     MobileAlertsSensor,
@@ -74,6 +77,10 @@ MEASUREMENT_TYPE_MAP = {
     "h2": MobileAlertsHumiditySensor,
     "h3": MobileAlertsHumiditySensor,
     "h4": MobileAlertsHumiditySensor,
+    "h3havg": MobileAlertsHumiditySensor,
+    "h24havg": MobileAlertsHumiditySensor,
+    "h7davg": MobileAlertsHumiditySensor,
+    "h30davg": MobileAlertsHumiditySensor,
     "r": MobileAlertsRainSensor,
     "rf": MobileAlertsRainFlowSensor,
     "ws": MobileAlertsWindSpeedSensor,
@@ -83,10 +90,10 @@ MEASUREMENT_TYPE_MAP = {
     "w": MobileAlertsContactSensor,  # Window/door contact sensor (Boolean True/False)
     "water": MobileAlertsWaterSensor,  # Water sensor (MA10350)
     "ac_power": MobileAlertsACPowerSensor,  # AC mains power sensor (MA10870)
+    "ap": MobileAlertsPressureSensor,  # Air Pressure (hPa)
+    "ppm": MobileAlertsCO2Sensor,  # Air Quality (CO2 ppm)
     # Generic sensor class for unmapped types (will use default parent class behavior)
     # This includes key press sensors from MA 10880 Wireless Switch
-    "ap": MobileAlertsSensor,  # Air Pressure
-    "ppm": MobileAlertsSensor,  # Air Quality
     "kp1t": MobileAlertsSensor,  # Key Press 1 Type
     "kp1c": MobileAlertsSensor,  # Key Press 1 Counter
     "kp2t": MobileAlertsSensor,  # Key Press 2 Type
@@ -159,7 +166,7 @@ async def async_setup_platform(
         return
 
     # Create API instance
-    api = MobileAlertsApi(phone_id)
+    api = MobileAlertsApi(phone_id, session=async_get_clientsession(hass))
 
     # Register all devices with API and build device info mapping
     device_info_map = {}  # Maps device_id to device info
@@ -323,16 +330,30 @@ async def async_setup_entry(
         if "coordinators_by_entry" not in hass.data[DOMAIN]:
             hass.data[DOMAIN]["coordinators_by_entry"] = {}
 
+        prefetched = (
+            hass.data[DOMAIN]
+            .get("prefetched_device_data", {})
+            .pop(device_id, None)
+        )
+
         if phone_id not in hass.data[DOMAIN]["coordinators"]:
             # Create new API instance for new coordinator
-            api = MobileAlertsApi(phone_id=phone_id)
-            await api.register_device(device_id)
+            api = MobileAlertsApi(
+                phone_id=phone_id,
+                session=async_get_clientsession(hass),
+            )
             coordinator = MobileAlertsCoordinator(hass, api)
             hass.data[DOMAIN]["coordinators"][phone_id] = coordinator
             hass.data[DOMAIN]["coordinators_by_entry"][config_entry.entry_id] = (
                 coordinator
             )
-            await coordinator.async_config_entry_first_refresh()
+            if prefetched is not None:
+                api.seed_device_data(prefetched)
+                coordinator.async_set_updated_data({"devices": api._data})
+            else:
+                if device_id not in api._device_ids:
+                    api._device_ids.append(device_id)
+                await coordinator.async_config_entry_first_refresh()
             _LOGGER.debug("Created new coordinator for phone_id=%s", phone_id)
         else:
             # Reuse existing coordinator and API
@@ -340,8 +361,12 @@ async def async_setup_entry(
             hass.data[DOMAIN]["coordinators_by_entry"][config_entry.entry_id] = (
                 coordinator
             )
-            # Register device and fetch its data
-            await coordinator._api.register_device(device_id)
+            if prefetched is not None:
+                coordinator._api.seed_device_data(prefetched)
+                coordinator.async_set_updated_data({"devices": coordinator._api._data})
+            else:
+                # Register device and fetch its data
+                await coordinator._api.register_device(device_id)
             _LOGGER.debug(
                 "Reusing existing coordinator for phone_id=%s, registered device %s",
                 phone_id,

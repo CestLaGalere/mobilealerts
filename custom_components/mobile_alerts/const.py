@@ -12,3 +12,17 @@ ATTRIBUTION = "Data from MobileAlerts"
 
 # Scan interval in minutes
 SCAN_INTERVAL_MINUTES = 10
+
+# Special measurement values returned by the Mobile Alerts API (API docs page 3)
+SPECIAL_VALUE_NOT_CONNECTED = 43530
+SPECIAL_VALUE_OUT_OF_RANGE = 65295
+INVALID_MEASUREMENT_VALUES = frozenset(
+    {
+        SPECIAL_VALUE_NOT_CONNECTED,
+        float(SPECIAL_VALUE_NOT_CONNECTED),
+        SPECIAL_VALUE_OUT_OF_RANGE,
+        float(SPECIAL_VALUE_OUT_OF_RANGE),
+        65296,
+        65296.0,
+    }
+)

@@ -24,13 +24,20 @@ class MobileAlertsApi:
         "https://www.data199.com/api/pv1/device/lastmeasurement",
     )
 
-    def __init__(self, phone_id: str) -> None:
+    def __init__(
+        self,
+        phone_id: str,
+        session: aiohttp.ClientSession | None = None,
+    ) -> None:
         """Initialize the API client.
 
         Args:
             phone_id: The Mobile Alerts phone/app id, or the sentinel
                 ``"ui_devices"`` for users who configured devices via the HA
                 UI without supplying a phone id.
+            session: Optional shared ``aiohttp.ClientSession`` (for example from
+                ``homeassistant.helpers.aiohttp_client.async_get_clientsession``).
+                If omitted, a temporary session is created per request.
 
         Note:
             The ``phone_id`` is **only** used by :meth:`discover_devices`.
@@ -43,8 +50,45 @@ class MobileAlertsApi:
             configuration.
         """
         self._phone_id = phone_id
+        self._session = session
         self._device_ids: list[str] = []
         self._data: list[dict[str, Any]] | None = None
+
+    def seed_device_data(self, device_data: dict[str, Any]) -> None:
+        """Register a device and seed or update its cached measurement data.
+
+        Updates only the matching device in ``self._data`` so previously cached
+        entries for other devices are preserved.
+
+        Args:
+            device_data: A single device dictionary from the API response.
+        """
+        device_id = device_data.get("deviceid")
+        if not device_id:
+            return
+
+        if device_id not in self._device_ids:
+            self._device_ids.append(device_id)
+            _LOGGER.debug("Device %s registered via seed", device_id)
+
+        if self._data is None:
+            self._data = []
+
+        self._data = [d for d in self._data if d.get("deviceid") != device_id]
+        self._data.append(device_data)
+
+    def unregister_device(self, device_id: str) -> None:
+        """Remove a device from the polling list and cached data.
+
+        Args:
+            device_id: The device ID to unregister.
+        """
+        if device_id in self._device_ids:
+            self._device_ids = [d for d in self._device_ids if d != device_id]
+            _LOGGER.debug("Device %s unregistered", device_id)
+
+        if self._data is not None:
+            self._data = [d for d in self._data if d.get("deviceid") != device_id]
 
     async def register_device(self, device_id: str) -> None:
         """Register a device and fetch its data immediately.
@@ -144,12 +188,8 @@ class MobileAlertsApi:
         if response_data:
             devices = response_data.get("devices", [])
             if devices:
-                if not self._data:
-                    self._data = []
-                # Remove old data for this device if it exists
-                self._data = [d for d in self._data if d.get("deviceid") != device_id]
-                # Add new data
-                self._data.extend(devices)
+                for device in devices:
+                    self.seed_device_data(device)
                 _LOGGER.debug("Got initial data for device %s", device_id)
             else:
                 _LOGGER.warning("No data returned for device %s", device_id)
@@ -197,6 +237,61 @@ class MobileAlertsApi:
         else:
             self._data = None
 
+    def _raise_for_status(self, status: int, body_preview: str = "") -> None:
+        """Raise a descriptive ApiError for non-200 HTTP responses."""
+        if status == 429:
+            _LOGGER.error(
+                "Mobile Alerts API rate limit exceeded (HTTP 429): max 3 requests per "
+                "sensor per minute; further requests are blocked for 7 minutes (URL: %s)",
+                self.API_URL,
+            )
+            raise ApiError("Rate limit exceeded (HTTP 429): blocked for 7 minutes")
+        if status == 403:
+            _LOGGER.error(
+                "Mobile Alerts API request blocked (HTTP 403): too many invalid "
+                "parameters from this IP; blocked for 15 minutes (URL: %s)",
+                self.API_URL,
+            )
+            raise ApiError(
+                "Forbidden (HTTP 403): IP temporarily blocked for 15 minutes"
+            )
+        if body_preview:
+            _LOGGER.error(
+                "API error: HTTP %s, URL: %s, body: %s",
+                status,
+                self.API_URL,
+                body_preview,
+            )
+        else:
+            _LOGGER.error(
+                "API error: HTTP %s, URL: %s",
+                status,
+                self.API_URL,
+            )
+        raise ApiError(f"HTTP {status}")
+
+    async def _send_post(
+        self, request_payload: dict[str, Any]
+    ) -> tuple[int, str]:
+        """Send an HTTP POST request using the injected or a temporary session."""
+        headers = {"Content-Type": "application/json"}
+        json_data = json.dumps(request_payload)
+
+        async with timeout(30):
+            if self._session is not None:
+                async with self._session.post(
+                    self.API_URL, data=json_data, headers=headers
+                ) as response:
+                    return response.status, await response.text()
+
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as session:
+                async with session.post(
+                    self.API_URL, data=json_data, headers=headers
+                ) as response:
+                    return response.status, await response.text()
+
     async def _post_api_request(
         self, request_payload: dict[str, Any]
     ) -> dict[str, Any] | None:
@@ -214,38 +309,25 @@ class MobileAlertsApi:
         Raises:
             ApiError: If API communication fails
         """
-        headers = {"Content-Type": "application/json"}
-        json_data = json.dumps(request_payload)
-
-        _LOGGER.debug("API Request: %s", json_data)
+        _LOGGER.debug("API Request: %s", json.dumps(request_payload))
 
         try:
-            async with timeout(30):
-                async with aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=30)
-                ) as session:
-                    async with session.post(
-                        self.API_URL, data=json_data, headers=headers
-                    ) as response:
-                        if response.status != 200:
-                            _LOGGER.error(
-                                "API error: HTTP %s, URL: %s",
-                                response.status,
-                                self.API_URL,
-                            )
-                            raise ApiError(f"HTTP {response.status}")
+            status, response_text = await self._send_post(request_payload)
+            if status != 200:
+                self._raise_for_status(status)
 
-                        response_text = await response.text()
-                        sensor_response = json.loads(response_text)
+            sensor_response = json.loads(response_text)
 
-                        if not sensor_response.get("success", False):
-                            error_code = sensor_response.get("errorcode")
-                            error_msg = sensor_response.get("errormessage")
-                            _LOGGER.error("API error: %s - %s", error_code, error_msg)
-                            return None
+            if not sensor_response.get("success", False):
+                error_code = sensor_response.get("errorcode")
+                error_msg = sensor_response.get("errormessage")
+                _LOGGER.error("API error: %s - %s", error_code, error_msg)
+                return None
 
-                        return sensor_response
+            return sensor_response
 
+        except ApiError:
+            raise
         except TimeoutError as err:
             _LOGGER.warning("Timeout connecting to Mobile Alerts API")
             raise ApiError("Connection timeout") from err
@@ -284,56 +366,44 @@ class MobileAlertsApi:
                 "deviceids": "",  # Empty string to get all devices
             }
 
-            headers = {"Content-Type": "application/json"}
-            json_data = json.dumps(request_payload)
+            _LOGGER.debug("Discovery Request payload: %s", json.dumps(request_payload))
 
-            _LOGGER.debug("Discovery Request payload: %s", json_data)
+            status, response_text = await self._send_post(request_payload)
+            _LOGGER.debug(
+                "Discovery API Response: status=%s, body=%s",
+                status,
+                response_text[:200] if response_text else "empty",
+            )
 
-            async with timeout(30):
-                async with aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=30)
-                ) as session:
-                    async with session.post(
-                        self.API_URL, data=json_data, headers=headers
-                    ) as response:
-                        response_text = await response.text()
-                        _LOGGER.debug(
-                            "Discovery API Response: status=%s, body=%s",
-                            response.status,
-                            response_text[:200] if response_text else "empty",
-                        )
+            if status != 200:
+                self._raise_for_status(
+                    status, response_text[:200] if response_text else ""
+                )
 
-                        if response.status != 200:
-                            _LOGGER.error(
-                                "API error: HTTP %s, URL: %s, body: %s",
-                                response.status,
-                                self.API_URL,
-                                response_text[:200],
-                            )
-                            raise ApiError(f"HTTP {response.status}")
+            sensor_response = json.loads(response_text)
 
-                        sensor_response = json.loads(response_text)
+            if not sensor_response.get("success", False):
+                error_code = sensor_response.get("errorcode")
+                error_msg = sensor_response.get("errormessage")
+                _LOGGER.error("API error: %s - %s", error_code, error_msg)
+                return []
 
-                        if not sensor_response.get("success", False):
-                            error_code = sensor_response.get("errorcode")
-                            error_msg = sensor_response.get("errormessage")
-                            _LOGGER.error("API error: %s - %s", error_code, error_msg)
-                            return []
+            devices = sensor_response.get("devices", [])
+            if devices:
+                _LOGGER.debug(
+                    "Successfully discovered %d devices",
+                    len(devices),
+                )
+            else:
+                _LOGGER.warning(
+                    "No devices found for phone_id %s",
+                    self._phone_id,
+                )
 
-                        devices = sensor_response.get("devices", [])
-                        if devices:
-                            _LOGGER.debug(
-                                "Successfully discovered %d devices",
-                                len(devices),
-                            )
-                        else:
-                            _LOGGER.warning(
-                                "No devices found for phone_id %s",
-                                self._phone_id,
-                            )
+            return devices
 
-                        return devices
-
+        except ApiError:
+            raise
         except TimeoutError as err:
             _LOGGER.warning("Timeout during device discovery")
             raise ApiError("Connection timeout") from err

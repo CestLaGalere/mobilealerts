@@ -298,3 +298,73 @@ async def test_fetch_batch_http_400_surfaces_as_api_error(fake_device_ids):
     ):
         cls.return_value = session
         await api._fetch_batch()
+
+
+@pytest.mark.asyncio
+async def test_seed_device_data_and_unregister(fake_device_ids):
+    """seed_device_data merges updates without dropping other devices and unregister cleans up."""
+    api = MobileAlertsApi(phone_id="ui_devices")
+    d1 = {"deviceid": fake_device_ids[0], "measurement": {"t1": 20.5}}
+    d2 = {"deviceid": fake_device_ids[1], "measurement": {"t1": 21.0}}
+    d1_updated = {"deviceid": fake_device_ids[0], "measurement": {"t1": 22.0}}
+
+    api.seed_device_data(d1)
+    api.seed_device_data(d2)
+    assert api._device_ids == [fake_device_ids[0], fake_device_ids[1]]
+    assert api.get_reading(fake_device_ids[0]) == d1
+    assert api.get_reading(fake_device_ids[1]) == d2
+
+    api.seed_device_data(d1_updated)
+    assert api._device_ids == [fake_device_ids[0], fake_device_ids[1]]
+    assert len(api._data) == 2
+    assert api.get_reading(fake_device_ids[0]) == d1_updated
+
+    api.unregister_device(fake_device_ids[0])
+    assert api._device_ids == [fake_device_ids[1]]
+    assert api.get_reading(fake_device_ids[0]) is None
+    assert api.get_reading(fake_device_ids[1]) == d2
+
+    # Unregistering an unknown/already-removed device is a safe no-op
+    api.unregister_device(fake_device_ids[0])
+    assert api._device_ids == [fake_device_ids[1]]
+
+
+@pytest.mark.asyncio
+async def test_injected_session_is_reused(fake_device_ids):
+    """Provided ClientSession must be reused without instantiating a new session."""
+    payload = {
+        "success": True,
+        "devices": [{"deviceid": fake_device_ids[0], "measurement": {"t1": 19.0}}],
+    }
+    response = _make_response(200, payload)
+    injected_session = _make_session(response)
+
+    api = MobileAlertsApi(phone_id="123456789", session=injected_session)
+    api._device_ids.append(fake_device_ids[0])
+
+    with patch("custom_components.mobile_alerts.api.aiohttp.ClientSession") as cls:
+        await api._fetch_batch()
+
+    cls.assert_not_called()
+    assert injected_session.post.call_count == 1
+    assert api.get_reading(fake_device_ids[0])["measurement"]["t1"] == 19.0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [429, 403])
+async def test_fetch_batch_rate_limit_and_forbidden_raise_api_error(
+    fake_device_ids, status
+):
+    """HTTP 429 (rate limit) and HTTP 403 (blocked) must raise ApiError."""
+    api = MobileAlertsApi(phone_id="123456789")
+    api._device_ids.append(fake_device_ids[0])
+
+    response = _make_response(status, {"success": False})
+    session = _make_session(response)
+
+    with (
+        patch("custom_components.mobile_alerts.api.aiohttp.ClientSession") as cls,
+        pytest.raises(ApiError, match=str(status)),
+    ):
+        cls.return_value = session
+        await api._fetch_batch()
