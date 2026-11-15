@@ -214,15 +214,19 @@ class MobileAlertsApi:
 
         response_data = await self._post_api_request(request_payload)
         if response_data:
-            self._data = response_data.get("devices", [])
-            if self._data:
+            devices = response_data.get("devices", [])
+            if self._data is None:
+                self._data = []
+            for device in devices:
+                self.seed_device_data(device)
+            if devices:
                 _LOGGER.debug(
                     "Successfully fetched data for %d devices",
-                    len(self._data),
+                    len(devices),
                 )
                 # Log device details for debugging
-                for device in self._data:
-                    device_id = device.get("deviceid")
+                for device in devices:
+                    device_id = device.get("deviceid", "unknown")
                     measurement = device.get("measurement", {})
                     if measurement:
                         meas_keys = list(measurement.keys())
@@ -233,9 +237,9 @@ class MobileAlertsApi:
                             measurement,
                         )
             else:
-                self._data = None
+                _LOGGER.warning("No device data returned from API")
         else:
-            self._data = None
+            _LOGGER.error("Failed to fetch data from API")
 
     def _raise_for_status(self, status: int, body_preview: str = "") -> None:
         """Raise a descriptive ApiError for non-200 HTTP responses."""

@@ -15,7 +15,6 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
-    CONCENTRATION_PARTS_PER_MILLION,
     CONF_DEVICE_ID,
     CONF_NAME,
     CONF_TYPE,
@@ -27,6 +26,13 @@ from homeassistant.const import (
     UnitOfSpeed,
     UnitOfTemperature,
 )
+
+try:
+    from homeassistant.const import UnitOfRatio
+
+    _PPM_UNIT: str = UnitOfRatio.PARTS_PER_MILLION
+except ImportError:
+    from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION as _PPM_UNIT
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import StateType
@@ -665,13 +671,13 @@ class MobileAlertsCO2Sensor(MobileAlertsSensor):
         """Initialize the CO2 sensor."""
         super().__init__(coordinator, device=device, device_info=device_info)
         self._device_class = SensorDeviceClass.CO2
-        self._attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+        self._attr_native_unit_of_measurement = _PPM_UNIT
         self.entity_description = SensorEntityDescription(
             key=SensorDeviceClass.CO2,
             translation_key=self._attr_translation_key or "air_quality",
             device_class=SensorDeviceClass.CO2,
             state_class=SensorStateClass.MEASUREMENT,
-            native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+            native_unit_of_measurement=_PPM_UNIT,
         )
 
     @property
