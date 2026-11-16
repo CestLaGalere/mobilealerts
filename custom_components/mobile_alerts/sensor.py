@@ -91,8 +91,8 @@ MEASUREMENT_TYPE_MAP = {
     "w": MobileAlertsContactSensor,  # Window/door contact sensor (Boolean True/False)
     "water": MobileAlertsWaterSensor,  # Water sensor (MA10350)
     "ac_power": MobileAlertsACPowerSensor,  # AC mains power sensor (MA10870)
-    "ap": MobileAlertsPressureSensor,  # Air Pressure (hPa)
-    "ppm": MobileAlertsCO2Sensor,  # Air Quality (CO2 ppm)
+    "ap": MobileAlertsPressureSensor,  # Air Pressure in hPa (MA10238)
+    "ppm": MobileAlertsCO2Sensor,  # CO2 / Air Quality in ppm (MA10402)
     # Generic sensor class for unmapped types (will use default parent class behavior)
     # This includes key press sensors from MA 10880 Wireless Switch
     "kp1t": MobileAlertsSensor,  # Key Press 1 Type

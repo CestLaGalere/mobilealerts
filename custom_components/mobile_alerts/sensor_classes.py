@@ -41,6 +41,18 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import ATTRIBUTION, INVALID_MEASUREMENT_VALUES
 from .coordinator import MobileAlertsCoordinator
 
+try:
+    from homeassistant.const import UnitOfRatio
+
+    PARTS_PER_MILLION: Final[str] = UnitOfRatio.PARTS_PER_MILLION
+except ImportError:
+    # Older Home Assistant versions have no UnitOfRatio (and the constant is
+    # not deprecated there). Drop this fallback once the minimum HA version
+    # ships UnitOfRatio, since the old constant is removed in HA 2027.8.
+    from homeassistant.const import (  # type: ignore[attr-defined,no-redef]
+        CONCENTRATION_PARTS_PER_MILLION as PARTS_PER_MILLION,
+    )
+
 _LOGGER: Final = logging.getLogger(__name__)
 
 
@@ -627,7 +639,10 @@ def _parse_float_sensor_value(
 
 
 class MobileAlertsPressureSensor(MobileAlertsSensor):
-    """Implementation of a Mobile Alerts atmospheric pressure sensor."""
+    """Implementation of a Mobile Alerts air pressure sensor (ap measurement).
+
+    The API reports air pressure in hPa (e.g. MA 10238).
+    """
 
     def __init__(
         self,
@@ -660,7 +675,10 @@ class MobileAlertsPressureSensor(MobileAlertsSensor):
 
 
 class MobileAlertsCO2Sensor(MobileAlertsSensor):
-    """Implementation of a Mobile Alerts CO2 air quality sensor."""
+    """Implementation of a Mobile Alerts CO2 / air quality sensor (ppm measurement).
+
+    The API reports the CO2 concentration in ppm (e.g. MA 10402).
+    """
 
     def __init__(
         self,
