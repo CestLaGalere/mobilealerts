@@ -4,20 +4,31 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.const import CONF_DEVICE_ID, CONF_NAME, CONF_TYPE, PERCENTAGE
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import (
+    CONF_DEVICE_ID,
+    CONF_NAME,
+    CONF_TYPE,
+    PERCENTAGE,
+    UnitOfPressure,
+)
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from custom_components.mobile_alerts.api import MobileAlertsApi
 from custom_components.mobile_alerts.const import DOMAIN
 from custom_components.mobile_alerts.sensor import (
+    MEASUREMENT_TYPE_MAP,
     MobileAlertsBatterySensor,
     MobileAlertsCoordinator,
     MobileAlertsHumiditySensor,
     MobileAlertsLastSeenSensor,
     MobileAlertsTemperatureSensor,
 )
-from custom_components.mobile_alerts.sensor_classes import MobileAlertsACPowerSensor
+from custom_components.mobile_alerts.sensor_classes import (
+    MobileAlertsACPowerSensor,
+    MobileAlertsCO2Sensor,
+    MobileAlertsPressureSensor,
+)
 
 
 @pytest.fixture
@@ -478,3 +489,80 @@ async def test_ac_power_sensor_no_data(sample_device_info):
 
     assert sensor._attr_is_on is False
     assert not sensor._attr_available
+
+
+def test_pressure_and_co2_types_use_dedicated_classes():
+    """Test ap and ppm are mapped to classes that define units."""
+    assert MEASUREMENT_TYPE_MAP["ap"] is MobileAlertsPressureSensor
+    assert MEASUREMENT_TYPE_MAP["ppm"] is MobileAlertsCO2Sensor
+
+
+@pytest.mark.asyncio
+async def test_pressure_sensor_initialization(sample_device_info):
+    """Test air pressure sensor reports hPa with the pressure device class."""
+    mock_coordinator = MagicMock()
+    mock_coordinator.get_reading.return_value = {
+        "deviceid": "A1B2C3D4E5F6",
+        "measurement": {"t1": 21.0, "h": 50, "ap": 1019.8, "ts": 1699000000},
+    }
+
+    sensor = MobileAlertsPressureSensor(
+        mock_coordinator,
+        {CONF_DEVICE_ID: "A1B2C3D4E5F6", CONF_NAME: "Barometer", CONF_TYPE: "ap"},
+        sample_device_info,
+    )
+
+    assert sensor._attr_translation_key == "pressure"
+    assert sensor._attr_unique_id == "A1B2C3D4E5F6ap"
+    assert sensor.device_class == SensorDeviceClass.ATMOSPHERIC_PRESSURE
+    assert sensor.state_class == SensorStateClass.MEASUREMENT
+    assert sensor.native_unit_of_measurement == UnitOfPressure.HPA
+    assert sensor.native_value == 1019.8
+    assert sensor._attr_available is True
+
+
+@pytest.mark.asyncio
+async def test_pressure_sensor_value_conversion(sample_device_info):
+    """Test air pressure sensor converts strings and rejects invalid values."""
+    mock_coordinator = MagicMock()
+    mock_coordinator.get_reading.return_value = None
+
+    sensor = MobileAlertsPressureSensor(
+        mock_coordinator,
+        {CONF_DEVICE_ID: "A1B2C3D4E5F6", CONF_NAME: "Barometer", CONF_TYPE: "ap"},
+        sample_device_info,
+    )
+    assert sensor.native_value is None
+
+    sensor._attr_native_value = "1013.25"
+    assert sensor.native_value == 1013.25
+
+    sensor._attr_native_value = "invalid"
+    assert sensor.native_value is None
+
+
+@pytest.mark.asyncio
+async def test_co2_sensor_initialization(sample_device_info):
+    """Test CO2 sensor reports ppm with the CO2 device class."""
+    mock_coordinator = MagicMock()
+    mock_coordinator.get_reading.return_value = {
+        "deviceid": "A1B2C3D4E5F6",
+        "measurement": {"t1": 21.0, "t2": 20.4, "h": 50, "ppm": 750, "ts": 1699000000},
+    }
+
+    sensor = MobileAlertsCO2Sensor(
+        mock_coordinator,
+        {CONF_DEVICE_ID: "A1B2C3D4E5F6", CONF_NAME: "CO2 Monitor", CONF_TYPE: "ppm"},
+        sample_device_info,
+    )
+
+    assert sensor._attr_translation_key == "air_quality"
+    assert sensor._attr_unique_id == "A1B2C3D4E5F6ppm"
+    assert sensor.device_class == SensorDeviceClass.CO2
+    assert sensor.state_class == SensorStateClass.MEASUREMENT
+    assert sensor.native_unit_of_measurement == "ppm"
+    assert sensor.native_value == 750.0
+    assert sensor._attr_available is True
+
+    sensor._attr_native_value = "not a number"
+    assert sensor.native_value is None

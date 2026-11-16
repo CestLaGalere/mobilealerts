@@ -28,9 +28,11 @@ from .device import DEVICE_MODELS, get_sensor_type_override
 from .sensor_classes import (
     MobileAlertsACPowerSensor,
     MobileAlertsBatterySensor,
+    MobileAlertsCO2Sensor,
     MobileAlertsContactSensor,
     MobileAlertsHumiditySensor,
     MobileAlertsLastSeenSensor,
+    MobileAlertsPressureSensor,
     MobileAlertsRainFlowSensor,
     MobileAlertsRainSensor,
     MobileAlertsSensor,
@@ -83,10 +85,10 @@ MEASUREMENT_TYPE_MAP = {
     "w": MobileAlertsContactSensor,  # Window/door contact sensor (Boolean True/False)
     "water": MobileAlertsWaterSensor,  # Water sensor (MA10350)
     "ac_power": MobileAlertsACPowerSensor,  # AC mains power sensor (MA10870)
+    "ap": MobileAlertsPressureSensor,  # Air Pressure in hPa (MA10238)
+    "ppm": MobileAlertsCO2Sensor,  # CO2 / Air Quality in ppm (MA10402)
     # Generic sensor class for unmapped types (will use default parent class behavior)
     # This includes key press sensors from MA 10880 Wireless Switch
-    "ap": MobileAlertsSensor,  # Air Pressure
-    "ppm": MobileAlertsSensor,  # Air Quality
     "kp1t": MobileAlertsSensor,  # Key Press 1 Type
     "kp1c": MobileAlertsSensor,  # Key Press 1 Counter
     "kp2t": MobileAlertsSensor,  # Key Press 2 Type
