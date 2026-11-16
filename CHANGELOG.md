@@ -6,6 +6,12 @@
 
 - **fix**: Air pressure (`ap`) and CO2 / air quality (`ppm`) sensors now report units (`hPa` and `ppm`), device classes (`ATMOSPHERIC_PRESSURE`, `CO2`) and state class `MEASUREMENT`. Previously they used the generic sensor class without a unit, so Home Assistant showed bare numbers and recorded no long-term statistics.
 - **fix**: Use `UnitOfRatio.PARTS_PER_MILLION` instead of the deprecated `CONCENTRATION_PARTS_PER_MILLION` (removed in Home Assistant 2027.8). Older Home Assistant versions without `UnitOfRatio` fall back to the old constant.
+- **fix**: Extract battery status from top-level `lowbat` and `lowbattery` as well as `measurement.lb` and `measurement.lowbattery`, and initialize the default battery icon before `super().__init__()` (fixes [#60](https://github.com/CestLaGalere/mobilealerts/issues/60)).
+- **fix**: Report the newer timestamp of device-level `lastseen` and `measurement.c` (falling back to `measurement.ts`) for `Last Seen` entities.
+- **fix**: Filter Mobile Alerts API error sentinel values (`43530` not connected, `65295`/`65296` out of range) across sensors and preserve float precision for rain measurements (`r`).
+- **feat**: Narrow ambiguous device model detection using the 2-character hardware ID prefix (`ID01`–`ID20`), ignore server/alert metadata keys (`sc`, `rr`, `rb`, etc.), and fix `MA10700` measurement keys (`t1`, `t2`, `h`).
+- **fix**: Reuse Home Assistant's shared `aiohttp.ClientSession`, surface HTTP `429`/`403` rate-limit/block responses via `ApiError`, serialize concurrent startup coordinator setup per `phone_id` with `asyncio.Lock`, merge batch updates via `seed_device_data()` (addresses [#62](https://github.com/CestLaGalere/mobilealerts/issues/62)), unregister unloaded devices and prune unused coordinators, and deduplicate coordinator refreshes in `mobile_alerts.dump_raw_response`.
+- **chore**: Mark battery and `Last Seen` sensors with `EntityCategory.DIAGNOSTIC`, map MA 10230 humidity averages (`h3havg`, `h24havg`, `h7davg`, `h30davg`), preserve channel-specific entity `translation_key` values, and update missing/mismatched translations across all locales (`de`, `en`, `es`, `fr`, `pt`, `zh-Hans`).
 
 ## v2.3.2 (Aug 02 2026)
 

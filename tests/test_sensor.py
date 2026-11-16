@@ -672,6 +672,8 @@ async def test_translation_keys_match_entity_descriptions(sample_device_info):
     )
     assert hum_avg._attr_translation_key == "humidity_3h_avg"
     assert hum_avg.entity_description.translation_key == "humidity_3h_avg"
+
+
 def test_pressure_and_co2_types_use_dedicated_classes():
     """Test ap and ppm are mapped to classes that define units."""
     assert MEASUREMENT_TYPE_MAP["ap"] is MobileAlertsPressureSensor

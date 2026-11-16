@@ -26,13 +26,6 @@ from homeassistant.const import (
     UnitOfSpeed,
     UnitOfTemperature,
 )
-
-try:
-    from homeassistant.const import UnitOfRatio
-
-    _PPM_UNIT: str = UnitOfRatio.PARTS_PER_MILLION
-except ImportError:
-    from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION as _PPM_UNIT
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import StateType
@@ -44,13 +37,13 @@ from .coordinator import MobileAlertsCoordinator
 try:
     from homeassistant.const import UnitOfRatio
 
-    PARTS_PER_MILLION: Final[str] = UnitOfRatio.PARTS_PER_MILLION
+    _PPM_UNIT: Final[str] = UnitOfRatio.PARTS_PER_MILLION
 except ImportError:
     # Older Home Assistant versions have no UnitOfRatio (and the constant is
     # not deprecated there). Drop this fallback once the minimum HA version
     # ships UnitOfRatio, since the old constant is removed in HA 2027.8.
     from homeassistant.const import (  # type: ignore[attr-defined,no-redef]
-        CONCENTRATION_PARTS_PER_MILLION as PARTS_PER_MILLION,
+        CONCENTRATION_PARTS_PER_MILLION as _PPM_UNIT,
     )
 
 _LOGGER: Final = logging.getLogger(__name__)
